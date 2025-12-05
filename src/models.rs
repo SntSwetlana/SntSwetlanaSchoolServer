@@ -15,3 +15,10 @@ pub struct NewUser {
     pub name: String,
     pub email: String,
 }
+
+#[derive(Deserialize, AsChangeset)]
+#[diesel(table_name = users)]
+pub struct UpdateUser {
+    pub name: Option<String>,
+    pub email: Option<String>,
+}
