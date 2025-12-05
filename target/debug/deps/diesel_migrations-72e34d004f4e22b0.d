@@ -1,0 +1,9 @@
+E:\___work___\_programming_\rust\SntSwetlanaSchool\server\target\debug\deps\diesel_migrations-72e34d004f4e22b0.d: C:\Users\User\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\diesel_migrations-2.3.1\src\lib.rs C:\Users\User\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\diesel_migrations-2.3.1\src\embedded_migrations.rs C:\Users\User\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\diesel_migrations-2.3.1\src\errors.rs C:\Users\User\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\diesel_migrations-2.3.1\src\file_based_migrations.rs C:\Users\User\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\diesel_migrations-2.3.1\src\migration_harness.rs
+
+E:\___work___\_programming_\rust\SntSwetlanaSchool\server\target\debug\deps\libdiesel_migrations-72e34d004f4e22b0.rmeta: C:\Users\User\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\diesel_migrations-2.3.1\src\lib.rs C:\Users\User\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\diesel_migrations-2.3.1\src\embedded_migrations.rs C:\Users\User\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\diesel_migrations-2.3.1\src\errors.rs C:\Users\User\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\diesel_migrations-2.3.1\src\file_based_migrations.rs C:\Users\User\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\diesel_migrations-2.3.1\src\migration_harness.rs
+
+C:\Users\User\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\diesel_migrations-2.3.1\src\lib.rs:
+C:\Users\User\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\diesel_migrations-2.3.1\src\embedded_migrations.rs:
+C:\Users\User\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\diesel_migrations-2.3.1\src\errors.rs:
+C:\Users\User\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\diesel_migrations-2.3.1\src\file_based_migrations.rs:
+C:\Users\User\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\diesel_migrations-2.3.1\src\migration_harness.rs:

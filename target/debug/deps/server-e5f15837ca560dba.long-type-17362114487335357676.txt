@@ -1,0 +1,1 @@
+(Integer, diesel::sql_types::Text, diesel::sql_types::Text): load_dsl::private::CompatibleType<User, _>
