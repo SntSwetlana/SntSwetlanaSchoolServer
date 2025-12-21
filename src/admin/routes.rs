@@ -1,0 +1,234 @@
+use axum::{
+    extract::{Form, State, Extension, Path},
+    response::{Html, IntoResponse, Redirect,  Json},
+    http::StatusCode,
+};
+use serde::Deserialize;
+use tower_cookies::{Cookies, Cookie};
+use uuid::Uuid;
+
+use diesel::prelude::*;
+use crate::{AppState, models::User};
+use crate::schema::users::dsl::*;
+use crate::{models::{NewUser,UpdateUser}};
+
+use crate::schema::{roles, user_roles};
+use crate::auth::middleware::AuthContext;
+use crate::models::audit::write_audit;
+
+#[derive(Deserialize)]
+pub struct AssignRoleReq {
+    pub user_id: Uuid,
+    pub role_key: String,
+}
+
+pub async fn assign_role(
+    State(state): State<AppState>,
+    Extension(ctx): Extension<AuthContext>,
+    Json(req): Json<AssignRoleReq>,
+) -> Result<StatusCode, StatusCode> {
+    if !ctx.has_perm("roles.assign") {
+        return Err(StatusCode::FORBIDDEN);
+    }
+
+    let mut conn = state.pool.get().map_err(|_| StatusCode::SERVICE_UNAVAILABLE)?;
+
+    // найти роль
+    let role_id: Uuid = roles::table
+        .filter(roles::key.eq(&req.role_key))
+        .select(roles::id)
+        .first(&mut conn)
+        .map_err(|_| StatusCode::BAD_REQUEST)?;
+
+    // вставить связь (idempotent)
+    diesel::insert_into(user_roles::table)
+        .values((
+            user_roles::user_id.eq(req.user_id),
+            user_roles::role_id.eq(role_id),
+            user_roles::assigned_by.eq(Some(ctx.user_id)),
+        ))
+        .on_conflict_do_nothing()
+        .execute(&mut conn)
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+
+        write_audit(
+            &mut conn,
+            Some(ctx.user_id),
+            "role.assign",
+            "user",
+            req.user_id,
+            Some(serde_json::json!({ "role_key": req.role_key })),
+        ).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+
+    Ok(StatusCode::NO_CONTENT)
+}
+
+#[derive(Deserialize)]
+pub struct AdminLoginForm {
+    pub username: String,
+    pub password: String,
+}
+
+pub async fn admin_index(cookies: Cookies) -> impl IntoResponse {
+    let ok = cookies.get("admin_session").map(|c| c.value() == "ok").unwrap_or(false);
+    if ok {
+        Redirect::to("/admin/users")
+    } else {
+        Redirect::to("/admin/login")
+    }
+}
+
+pub async fn admin_login_page() -> Html<&'static str> {
+    Html(r#"<!doctype html>
+<html>
+<head><meta charset="utf-8"><title>Admin Login</title></head>
+<body style="font-family: sans-serif; max-width: 420px; margin: 40px auto;">
+  <h2>Admin Login</h2>
+  <form method="post" action="/admin/login">
+    <div style="margin: 8px 0;">
+      <label>Username</label><br/>
+      <input name="username" style="width: 100%; padding: 8px;" />
+    </div>
+    <div style="margin: 8px 0;">
+      <label>Password</label><br/>
+      <input type="password" name="password" style="width: 100%; padding: 8px;" />
+    </div>
+    <button type="submit" style="padding: 10px 14px;">Login</button>
+  </form>
+</body>
+</html>"#)
+}
+
+pub async fn admin_login_submit(
+    cookies: Cookies,
+    Form(form): Form<AdminLoginForm>,
+) -> Result<impl IntoResponse, StatusCode> {
+    // Минимально: креды из env
+    let admin_user = std::env::var("ADMIN_USERNAME").unwrap_or_else(|_| "admin".to_string());
+    let admin_pass = std::env::var("ADMIN_PASSWORD").unwrap_or_else(|_| "admin".to_string());
+
+    if form.username == admin_user && form.password == admin_pass {
+        let mut c = Cookie::new("admin_session", "ok");
+        c.set_http_only(true);
+        c.set_path("/");
+        cookies.add(c);
+        Ok(Redirect::to("/admin/users").into_response())
+    } else {
+        Ok((StatusCode::UNAUTHORIZED, Html("Invalid credentials")).into_response())
+    }
+}
+
+pub async fn admin_logout(cookies: Cookies) -> impl IntoResponse {
+    let mut c = Cookie::new("admin_session", "");
+    c.set_path("/");
+    cookies.remove(c);
+    Redirect::to("/admin/login")
+}
+
+pub async fn get_user(
+    Path(user_id): Path<Uuid>,
+    State(state): State<AppState>,
+) -> Json<User> {
+    let mut conn = state.pool.get().unwrap();
+
+    let user = users
+        .find(user_id)
+        .first::<User>(&mut conn)
+        .expect("User not found");
+
+    Json(user)
+}
+
+pub async fn create_user(
+    State(state): State<AppState>,
+    Json(new_user): Json<NewUser>,
+) -> Json<User> {
+    let mut conn = state.pool.get().unwrap();
+
+    let user = diesel::insert_into(users)
+        .values(&new_user)
+        .get_result::<User>(&mut conn)
+        .expect("Failed to insert user");
+
+    Json(user)
+}
+
+pub async fn update_user(
+    Path(user_id): Path<Uuid>,
+    State(state): State<AppState>,
+    Json(update): Json<UpdateUser>,
+) -> Json<User> {
+    let mut conn = state.pool.get().unwrap();
+
+    let updated_user = diesel::update(users.find(user_id))
+        .set(&update)
+        .get_result::<User>(&mut conn)
+        .expect("Failed to update user");
+
+    Json(updated_user)
+}
+
+// DELETE /users/:id
+pub async fn delete_user(
+    Path(user_id): Path<Uuid>,
+    State(state): State<AppState>,
+) -> Json<&'static str> {
+    let mut conn = state.pool.get().unwrap();
+
+    diesel::delete(users.find(user_id))
+        .execute(&mut conn)
+        .expect("Failed to delete user");
+
+    Json("User deleted")
+}
+
+pub async fn admin_users_page(
+    State(state): State<AppState>,
+) -> Result<Html<String>, StatusCode> {
+    let mut conn = state.pool.get().map_err(|_| StatusCode::SERVICE_UNAVAILABLE)?;
+
+    let list = users
+        .select(User::as_select())
+        .load::<User>(&mut conn)
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+
+    // Простая HTML-таблица
+    let mut rows = String::new();
+    for u in list {
+        rows.push_str(&format!(
+            "<tr><td>{}</td><td>{}</td><td>{}</td><td>{}</td></tr>",
+            u.id,
+            html_escape(&u.auth0_id),
+            u.email.clone().unwrap_or_default(),
+            u.created_at.map(|d| d.to_string()).unwrap_or_default(),
+        ));
+    }
+
+    let html = format!(r#"<!doctype html>
+<html>
+<head><meta charset="utf-8"><title>Users</title></head>
+<body style="font-family: sans-serif; margin: 40px;">
+  <div style="display:flex; justify-content:space-between; align-items:center;">
+    <h2>Registered Users</h2>
+    <form method="post" action="/admin/logout">
+      <button type="submit">Logout</button>
+    </form>
+  </div>
+  <table border="1" cellpadding="8" cellspacing="0">
+    <thead><tr><th>ID</th><th>auth0_id</th><th>Email</th><th>created_at</th></tr></thead>
+    <tbody>{}</tbody>
+  </table>
+</body>
+</html>"#, rows);
+
+    Ok(Html(html))
+}
+
+// минимальный экранировщик
+fn html_escape(s: &str) -> String {
+    s.replace('&', "&amp;")
+     .replace('<', "&lt;")
+     .replace('>', "&gt;")
+     .replace('"', "&quot;")
+     .replace('\'', "&#39;")
+}

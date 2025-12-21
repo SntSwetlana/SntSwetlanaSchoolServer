@@ -3,6 +3,8 @@ use diesel::prelude::*;
 use crate::schema::users;
 use uuid::Uuid;
 
+
+
 #[derive(Queryable, Selectable, Debug, Serialize)]
 #[diesel(table_name = users)]
 pub struct User {
@@ -12,7 +14,7 @@ pub struct User {
     pub created_at: Option<chrono::NaiveDateTime>,
 }
 
-#[derive(Insertable, Debug)]
+#[derive(Insertable, Debug, Deserialize)]
 #[diesel(table_name = users)]
 pub struct NewUser {
     pub auth0_id: String,

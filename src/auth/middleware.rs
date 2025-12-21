@@ -10,6 +10,7 @@ use diesel::ExpressionMethods;
 use diesel::QueryDsl;
 use diesel::RunQueryDsl;
 use diesel::OptionalExtension;
+use axum::extract::Extension;
 
 use tower_cookies::Cookies;
 use serde::Deserialize;
@@ -18,6 +19,10 @@ use crate::auth::jwks::{update_jwks, get_key};
 use crate::models::{User, NewUser};
 use crate::schema::users::dsl::*;
 use uuid::Uuid;
+use std::collections::HashSet;
+use diesel::prelude::*;
+use crate::schema::{user_roles, roles, role_permissions, permissions};
+
 
 use crate::AppState;
 
@@ -36,6 +41,28 @@ pub struct AuthenticatedUser {
     pub auth0_id: String,
     pub email: Option<String>,
 }
+
+#[derive(Clone, Debug)]
+pub struct AuthContext {
+    pub user_id: uuid::Uuid,
+    pub roles: Vec<String>,
+    pub permissions: HashSet<String>,
+}
+
+impl AuthContext {
+    pub fn has_role(&self, r: &str) -> bool {
+        self.roles.iter().any(|x| x == r)
+    }
+    pub fn has_perm(&self, p: &str) -> bool {
+        self.permissions.contains(p)
+    }
+}
+
+pub async fn admin_only(Extension(ctx): Extension<AuthContext>) -> StatusCode {
+    if !ctx.has_perm("roles.assign") { return StatusCode::FORBIDDEN; }
+    StatusCode::OK
+}
+
 
 pub async fn auth_middleware(
     State(state): State<AppState>,
@@ -101,5 +128,36 @@ pub async fn auth_middleware(
         email: user.email,
     });
 
+    let ctx = {
+        let mut conn = state.pool.get().map_err(|_| StatusCode::SERVICE_UNAVAILABLE)?;
+        load_auth_context(&mut conn, user.id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
+    };
+
+    req.extensions_mut().insert(ctx);
+
     Ok(next.run(req).await)
+}
+
+fn load_auth_context(conn: &mut PgConnection, uid: uuid::Uuid) -> Result<AuthContext, diesel::result::Error> {
+    // роли пользователя
+    let role_keys: Vec<String> = user_roles::table
+        .inner_join(roles::table.on(roles::id.eq(user_roles::role_id)))
+        .filter(user_roles::user_id.eq(uid))
+        .select(roles::key)
+        .load(conn)?;
+
+    // permissions через роли
+    let perm_keys: Vec<String> = user_roles::table
+        .inner_join(role_permissions::table.on(role_permissions::role_id.eq(user_roles::role_id)))
+        .inner_join(permissions::table.on(permissions::id.eq(role_permissions::permission_id)))
+        .filter(user_roles::user_id.eq(uid))
+        .select(permissions::key)
+        .distinct()
+        .load(conn)?;
+
+    Ok(AuthContext {
+        user_id: uid,
+        roles: role_keys,
+        permissions: perm_keys.into_iter().collect::<HashSet<_>>(),
+    })
 }
