@@ -4,6 +4,8 @@ mod models;
 mod routes;
 mod schema;
 mod admin;
+mod teacher;
+mod editor;
 
 use axum::{routing::{get, patch, delete, post}, Router};
 use auth::jwks::JwksCache;
@@ -27,32 +29,56 @@ async fn main() {
     let jwks = JwksCache::new();
     let state = AppState { pool, jwks };
 
-    let protected = Router::new()
+    let protected: Router<AppState> = Router::new()
         .route("/me", get(routes::me_handler))
         .layer(axum::middleware::from_fn_with_state(
             state.clone(),
             auth::middleware::auth_middleware,
         ));
 
-let admin_public = Router::new()
-    .route("/", get(admin::routes::admin_index))
-    .route("/login", get(admin::routes::admin_login_page))
-    .route("/login", post(admin::routes::admin_login_submit));
+let protected_api = Router::new()
+    .route("/me", get(routes::me_handler))
+    .route("/users", get(routes::get_users))
+    .layer(axum::middleware::from_fn_with_state(
+        state.clone(),
+        auth::middleware::auth_middleware,
+    ));
 
-let admin_protected = Router::new()
+let admin = Router::new()
+    .route("/", get(admin::routes::admin_index))
     .route("/users", get(admin::routes::admin_users_page))
-    .route("/logout", post(admin::routes::admin_logout))
-    .route("/users/{id}", get(admin::routes::get_user))
-    .route("/user", post(admin::routes::create_user))
-    .route("/users/{id}", patch(admin::routes::update_user))
-    .route("/users/{id}", delete(admin::routes::delete_user))
-    .layer(axum::middleware::from_fn(admin::middleware::admin_middleware));
+    .route("/roles", get(admin::routes::admin_roles_page))
+    .route("/audit", get(admin::routes::admin_audit_page))
+    .layer(axum::middleware::from_fn_with_state(
+        state.clone(),
+        auth::middleware::auth_middleware,
+    ))
+    .layer(axum::middleware::from_fn(auth::middleware::require_admin)); // новый middleware
+
+let teacher = Router::new()
+    .route("/", get(teacher::routes::teacher_index))
+    .route("/students", get(teacher::routes::students_page))
+    .layer(axum::middleware::from_fn_with_state(
+        state.clone(),
+        auth::middleware::auth_middleware,
+    ))
+    .layer(axum::middleware::from_fn(auth::middleware::require_teacher));
+
+let editor = Router::new()
+    .route("/", get(editor::routes::editor_index))
+    .route("/content", get(editor::routes::content_page))
+    .layer(axum::middleware::from_fn_with_state(
+        state.clone(),
+        auth::middleware::auth_middleware,
+    ))
+    .layer(axum::middleware::from_fn(auth::middleware::require_editor));
 
 let app = Router::new()
-    .nest("/admin", admin_public.merge(admin_protected))
-    .nest("/api", protected)
+    .nest("/api", protected_api)
+    .nest("/admin", admin)
+    .nest("/teacher", teacher)
+    .nest("/editor", editor)
     .route("/", get(|| async { "API is working" }))
-    .route("/users", get(routes::get_users))
     .layer(tower_cookies::CookieManagerLayer::new())
     .with_state(state);
 

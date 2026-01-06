@@ -15,6 +15,9 @@ use crate::{models::{NewUser,UpdateUser}};
 use crate::schema::{roles, user_roles};
 use crate::auth::middleware::AuthContext;
 use crate::models::audit::write_audit;
+use crate::admin::views::{UserRow, AdminUsersTemplate};
+
+use askama::Template;
 
 #[derive(Deserialize)]
 pub struct AssignRoleReq {
@@ -76,27 +79,6 @@ pub async fn admin_index(cookies: Cookies) -> impl IntoResponse {
     } else {
         Redirect::to("/admin/login")
     }
-}
-
-pub async fn admin_login_page() -> Html<&'static str> {
-    Html(r#"<!doctype html>
-<html>
-<head><meta charset="utf-8"><title>Admin Login</title></head>
-<body style="font-family: sans-serif; max-width: 420px; margin: 40px auto;">
-  <h2>Admin Login</h2>
-  <form method="post" action="/admin/login">
-    <div style="margin: 8px 0;">
-      <label>Username</label><br/>
-      <input name="username" style="width: 100%; padding: 8px;" />
-    </div>
-    <div style="margin: 8px 0;">
-      <label>Password</label><br/>
-      <input type="password" name="password" style="width: 100%; padding: 8px;" />
-    </div>
-    <button type="submit" style="padding: 10px 14px;">Login</button>
-  </form>
-</body>
-</html>"#)
 }
 
 pub async fn admin_login_submit(
@@ -193,35 +175,19 @@ pub async fn admin_users_page(
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
     // Простая HTML-таблица
-    let mut rows = String::new();
-    for u in list {
-        rows.push_str(&format!(
-            "<tr><td>{}</td><td>{}</td><td>{}</td><td>{}</td></tr>",
-            u.id,
-            html_escape(&u.auth0_id),
-            u.email.clone().unwrap_or_default(),
-            u.created_at.map(|d| d.to_string()).unwrap_or_default(),
-        ));
-    }
+    let rows = list.into_iter().map(|u| UserRow {
+        id: u.id,
+        auth0_id: u.auth0_id,
+        email: u.email.unwrap_or_default(),
+        created_at: u.created_at.map(|d| d.to_string()).unwrap_or_default(),
+    }).collect();
 
-    let html = format!(r#"<!doctype html>
-<html>
-<head><meta charset="utf-8"><title>Users</title></head>
-<body style="font-family: sans-serif; margin: 40px;">
-  <div style="display:flex; justify-content:space-between; align-items:center;">
-    <h2>Registered Users</h2>
-    <form method="post" action="/admin/logout">
-      <button type="submit">Logout</button>
-    </form>
-  </div>
-  <table border="1" cellpadding="8" cellspacing="0">
-    <thead><tr><th>ID</th><th>auth0_id</th><th>Email</th><th>created_at</th></tr></thead>
-    <tbody>{}</tbody>
-  </table>
-</body>
-</html>"#, rows);
+    let tpl = AdminUsersTemplate {
+        users: rows,
+        q: "".to_string(), // позже сюда подставим search query
+    };
 
-    Ok(Html(html))
+    Ok(Html(tpl.render().map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?))
 }
 
 // минимальный экранировщик
@@ -231,4 +197,12 @@ fn html_escape(s: &str) -> String {
      .replace('>', "&gt;")
      .replace('"', "&quot;")
      .replace('\'', "&#39;")
+}
+
+pub async fn admin_roles_page() -> Html<&'static str> {
+    Html("Roles page")
+}
+
+pub async fn admin_audit_page() -> Html<&'static str> {
+    Html("Audit page")
 }

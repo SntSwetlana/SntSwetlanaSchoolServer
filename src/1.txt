@@ -1,0 +1,79 @@
+ Volume in drive E is New Volume
+ Volume Serial Number is 1424-7EDC
+
+ Directory of e:\___work___\_programming_\rust\SntSwetlanaSchool\server\src
+
+01/04/2026  04:58 PM    <DIR>          .
+01/04/2026  04:56 PM    <DIR>          ..
+01/04/2026  04:58 PM                 0 1.txt
+12/21/2025  11:21 PM    <DIR>          admin
+12/06/2025  08:11 AM    <DIR>          auth
+12/05/2025  03:17 PM               809 db.rs
+12/21/2025  08:52 PM    <DIR>          editor
+12/21/2025  08:54 PM             2,886 main.rs
+12/14/2025  09:59 AM    <DIR>          models
+12/13/2025  10:50 PM               835 routes.rs
+12/14/2025  08:29 AM             2,193 schema.rs
+12/21/2025  08:43 PM    <DIR>          teacher
+12/21/2025  11:20 PM    <DIR>          templates
+12/05/2025  03:10 PM               633 users.rs
+               6 File(s)          7,356 bytes
+
+ Directory of e:\___work___\_programming_\rust\SntSwetlanaSchool\server\src\admin
+
+12/21/2025  11:21 PM    <DIR>          .
+01/04/2026  04:58 PM    <DIR>          ..
+12/14/2025  08:57 AM               592 middleware.rs
+12/13/2025  09:19 PM                36 mod.rs
+01/04/2026  04:44 PM             6,554 routes.rs
+12/21/2025  11:21 PM               485 views.rs
+               4 File(s)          7,667 bytes
+
+ Directory of e:\___work___\_programming_\rust\SntSwetlanaSchool\server\src\auth
+
+12/06/2025  08:11 AM    <DIR>          .
+01/04/2026  04:58 PM    <DIR>          ..
+12/06/2025  08:06 AM             1,417 jwks.rs
+01/04/2026  03:35 PM             5,934 middleware.rs
+12/06/2025  08:11 AM                34 mod.rs
+               3 File(s)          7,385 bytes
+
+ Directory of e:\___work___\_programming_\rust\SntSwetlanaSchool\server\src\editor
+
+12/21/2025  08:52 PM    <DIR>          .
+01/04/2026  04:58 PM    <DIR>          ..
+12/21/2025  08:53 PM                15 mod.rs
+01/04/2026  03:38 PM               830 routes.rs
+               2 File(s)            845 bytes
+
+ Directory of e:\___work___\_programming_\rust\SntSwetlanaSchool\server\src\models
+
+12/14/2025  09:59 AM    <DIR>          .
+01/04/2026  04:58 PM    <DIR>          ..
+12/21/2025  03:55 PM               904 audit.rs
+12/21/2025  03:42 PM             1,040 content.rs
+12/14/2025  10:05 AM               142 mod.rs
+12/18/2025  10:47 PM             1,725 rbac.rs
+12/14/2025  10:05 AM               638 users.rs
+               5 File(s)          4,449 bytes
+
+ Directory of e:\___work___\_programming_\rust\SntSwetlanaSchool\server\src\teacher
+
+12/21/2025  08:43 PM    <DIR>          .
+01/04/2026  04:58 PM    <DIR>          ..
+12/21/2025  08:49 PM                15 mod.rs
+01/04/2026  03:37 PM               834 routes.rs
+               2 File(s)            849 bytes
+
+ Directory of e:\___work___\_programming_\rust\SntSwetlanaSchool\server\src\templates
+
+12/21/2025  11:20 PM    <DIR>          .
+01/04/2026  04:58 PM    <DIR>          ..
+12/21/2025  11:20 PM               735 admin_layout.html
+12/21/2025  11:20 PM             1,203 admin_login.html
+12/21/2025  11:20 PM             1,881 admin_users.html
+               3 File(s)          3,819 bytes
+
+     Total Files Listed:
+              25 File(s)         32,370 bytes
+              20 Dir(s)  1,159,954,669,568 bytes free

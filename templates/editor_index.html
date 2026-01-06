@@ -1,0 +1,58 @@
+{% extends "admin_layout.html" %}
+
+{% block title %}Editor{% endblock %}
+
+{% block top_right %}
+<div class="flex items-center gap-4 text-sm">
+  <span class="text-slate-600">
+    {{ current_user }}
+  </span>
+
+  <form method="post" action="/editor/logout">
+    <button class="underline text-slate-700 hover:text-slate-900">
+      Logout
+    </button>
+  </form>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+
+  <div>
+    <h1 class="text-2xl font-semibold">Editor dashboard</h1>
+    <p class="text-slate-600 mt-1">
+      Manage educational content and drafts
+    </p>
+  </div>
+
+  <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+
+    <a href="/editor/content"
+       class="rounded-2xl border bg-white p-5 hover:shadow-sm transition">
+      <div class="font-medium">Content</div>
+      <div class="text-sm text-slate-600 mt-1">
+        Create and edit tasks, lessons and materials
+      </div>
+    </a>
+
+    <a href="/editor/drafts"
+       class="rounded-2xl border bg-white p-5 hover:shadow-sm transition">
+      <div class="font-medium">Drafts</div>
+      <div class="text-sm text-slate-600 mt-1">
+        Unpublished and in-review items
+      </div>
+    </a>
+
+    <a href="/editor/history"
+       class="rounded-2xl border bg-white p-5 hover:shadow-sm transition">
+      <div class="font-medium">History</div>
+      <div class="text-sm text-slate-600 mt-1">
+        Change log and previous versions
+      </div>
+    </a>
+
+  </div>
+
+</div>
+{% endblock %}

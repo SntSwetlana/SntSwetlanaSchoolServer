@@ -1,4 +1,5 @@
 use axum::{
+    body::Body,
     extract::{State,Request},
     http::StatusCode,
     middleware::Next,
@@ -57,6 +58,7 @@ impl AuthContext {
         self.permissions.contains(p)
     }
 }
+
 
 pub async fn admin_only(Extension(ctx): Extension<AuthContext>) -> StatusCode {
     if !ctx.has_perm("roles.assign") { return StatusCode::FORBIDDEN; }
@@ -160,4 +162,31 @@ fn load_auth_context(conn: &mut PgConnection, uid: uuid::Uuid) -> Result<AuthCon
         roles: role_keys,
         permissions: perm_keys.into_iter().collect::<HashSet<_>>(),
     })
+}
+
+pub async fn require_admin(
+    req: Request<Body>,
+    next: Next
+) -> Result<Response, StatusCode> {
+    let ctx = req.extensions().get::<AuthContext>().ok_or(StatusCode::UNAUTHORIZED)?;
+    if !(ctx.has_role("admin") || ctx.has_perm("roles.assign")) {
+        return Err(StatusCode::FORBIDDEN);
+    }
+    Ok(next.run(req).await)
+}
+
+pub async fn require_teacher(req: Request<Body>, next: Next) -> Result<Response, StatusCode> {
+    let ctx = req.extensions().get::<AuthContext>().ok_or(StatusCode::UNAUTHORIZED)?;
+    if !(ctx.has_role("teacher") || ctx.has_role("admin")) {
+        return Err(StatusCode::FORBIDDEN);
+    }
+    Ok(next.run(req).await)
+}
+
+pub async fn require_editor(req: Request<Body>, next: Next) -> Result<Response, StatusCode> {
+    let ctx = req.extensions().get::<AuthContext>().ok_or(StatusCode::UNAUTHORIZED)?;
+    if !(ctx.has_role("editor") || ctx.has_role("admin")) {
+        return Err(StatusCode::FORBIDDEN);
+    }
+    Ok(next.run(req).await)
 }
