@@ -81,6 +81,27 @@ pub async fn admin_index(cookies: Cookies) -> impl IntoResponse {
     }
 }
 
+pub async fn admin_login_page() -> Html<&'static str> {
+    Html(r#"<!doctype html>
+<html>
+<head><meta charset="utf-8"><title>Admin Login</title></head>
+<body style="font-family: sans-serif; max-width: 420px; margin: 40px auto;">
+  <h2>Admin Login</h2>
+  <form method="post" action="/admin/login">
+    <div style="margin: 8px 0;">
+      <label>Username</label><br/>
+      <input name="username" style="width: 100%; padding: 8px;" />
+    </div>
+    <div style="margin: 8px 0;">
+      <label>Password</label><br/>
+      <input type="password" name="password" style="width: 100%; padding: 8px;" />
+    </div>
+    <button type="submit" style="padding: 10px 14px;">Login</button>
+  </form>
+</body>
+</html>"#)
+}
+
 pub async fn admin_login_submit(
     cookies: Cookies,
     Form(form): Form<AdminLoginForm>,
