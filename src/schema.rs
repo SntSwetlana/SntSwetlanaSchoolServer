@@ -1,5 +1,3 @@
-// @generated automatically by Diesel CLI.
-
 diesel::table! {
     audit_log (id) {
         id -> Uuid,
@@ -41,6 +39,14 @@ diesel::table! {
 }
 
 diesel::table! {
+    local_credentials (user_id) {
+        user_id -> Uuid,
+        password_hash -> Text,
+        created_at -> Nullable<Timestamp>,
+    }
+}
+
+diesel::table! {
     permissions (id) {
         id -> Uuid,
         key -> Text,
@@ -77,6 +83,9 @@ diesel::table! {
         auth0_id -> Text,
         email -> Nullable<Text>,
         created_at -> Nullable<Timestamp>,
+        username -> Nullable<Text>,
+        full_name -> Nullable<Text>,
+        gender -> Nullable<Text>,
     }
 }
 
@@ -84,6 +93,7 @@ diesel::joinable!(audit_log -> users (actor_id));
 diesel::joinable!(content_items -> users (created_by));
 diesel::joinable!(content_versions -> content_items (content_id));
 diesel::joinable!(content_versions -> users (created_by));
+diesel::joinable!(local_credentials -> users (user_id));
 diesel::joinable!(role_permissions -> permissions (permission_id));
 diesel::joinable!(role_permissions -> roles (role_id));
 diesel::joinable!(user_roles -> roles (role_id));
@@ -92,6 +102,7 @@ diesel::allow_tables_to_appear_in_same_query!(
     audit_log,
     content_items,
     content_versions,
+    local_credentials,
     permissions,
     role_permissions,
     roles,

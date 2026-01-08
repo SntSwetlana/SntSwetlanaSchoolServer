@@ -7,7 +7,7 @@ mod admin;
 mod teacher;
 mod editor;
 
-use axum::{routing::{get, patch, delete, post}, Router};
+use axum::{routing::{get, patch, put, delete, post}, Router};
 use auth::jwks::JwksCache;
 use std::net::SocketAddr;
 use db::init_pool;
@@ -42,6 +42,15 @@ async fn main() {
         .route("/users", get(routes::get_users)) 
         .layer(axum::middleware::from_fn_with_state( state.clone(), auth::middleware::auth_middleware, )); 
     // Важно: login страницы должны быть ДО защиты, либо разделите на два роутера:
+
+    let admin_api = Router::new()
+        .route("/users", get(admin::api::list_users))
+        .route("/users", post(admin::api::create_user))
+        .route("/users/{id}", put(admin::api::update_user))
+        .route("/users/{id}", delete(admin::api::delete_user))
+        .layer(axum::middleware::from_fn(admin::middleware::admin_middleware))
+        .with_state(state.clone());
+
     let admin_public = Router::new()
         .route("/", get(admin::routes::admin_index))
         .route("/login", get(admin::routes::admin_login_page))
@@ -86,7 +95,7 @@ async fn main() {
     .allow_credentials(true);
 
     let app: Router<()> = Router::new()
-        .nest("/api", public_api.merge(protected_api))
+        .nest("/api", public_api.merge(protected_api).nest("/admin", admin_api))
         .nest("/admin", admin_router)
         .nest("/teacher", teacher)
         .nest("/editor", editor)
