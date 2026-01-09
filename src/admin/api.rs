@@ -8,25 +8,41 @@ use diesel::prelude::*;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-use crate::{models::users::{AdminCreateUserReq, NewLocalCredentialDb, NewUserDb, User}, schema::local_credentials};
-
+use crate::{
+    models::users::{AdminCreateUserReq, NewLocalCredentialDb, NewUserDb, User}, 
+    //schema::{local_credentials, roles, user_roles},
+};
 
 use crate::{
     AppState,
     models::{UpdateUser},
-    schema::users::dsl::*,
+    //schema::users::dsl::*,
     auth::middleware::AuthContext,
     models::audit::write_audit,
 };
+use crate::schema::{users, user_roles, roles, local_credentials};
+use crate::schema::users::dsl as u;
+
+
 
 #[derive(Deserialize)]
 pub struct UsersQuery {
     pub q: Option<String>,
 }
+#[derive(serde::Serialize)]
+pub struct AdminUserDto {
+    pub id: Uuid,
+    pub username: Option<String>,
+    pub email: Option<String>,
+    pub full_name: Option<String>,
+    pub gender: Option<String>,
+    pub created_at: Option<chrono::NaiveDateTime>,
+    pub role: String, // ОДНА роль
+}
 
 #[derive(Serialize)]
 pub struct UsersResponse {
-    pub users: Vec<User>,
+    pub users: Vec<AdminUserDto>,
 }
 
 #[derive(QueryableByName)]
@@ -40,22 +56,61 @@ pub async fn list_users(
 ) -> Result<Json<UsersResponse>, StatusCode> {
     let mut conn = state.pool.get().map_err(|_| StatusCode::SERVICE_UNAVAILABLE)?;
 
-    let mut query = users.into_boxed();
+    let mut q = users::table
+        .left_join(user_roles::table.on(user_roles::user_id.eq(u::id)))
+        .left_join(roles::table.on(roles::id.eq(user_roles::role_id)))
+        .into_boxed();
 
-    if let Some(q) = params.q.as_ref().filter(|s| !s.trim().is_empty()) {
-        let pattern = format!("%{}%", q.trim());
-        query = query.filter(
-            email.ilike(pattern.clone()).or(auth0_id.ilike(pattern.clone()))
+    if let Some(s) = params.q.as_ref().filter(|s| !s.trim().is_empty()) {
+        let pattern = format!("%{}%", s.trim());
+        q = q.filter(
+            u::email.ilike(pattern.clone())
+                .or(u::username.ilike(pattern.clone()))
+                .or(u::auth0_id.ilike(pattern)),
         );
     }
 
-    let list = query
-        .select(User::as_select())
-        .order(created_at.desc())
-        .load::<User>(&mut conn)
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let rows: Vec<(
+        Uuid,
+        Option<String>,
+        Option<String>,
+        Option<String>,
+        Option<String>,
+        Option<chrono::NaiveDateTime>,
+        Option<String>,
+    )> = q
+        .select((
+            u::id,
+            u::username,
+            u::email,
+            u::full_name,
+            u::gender,
+            u::created_at,
+            roles::key.nullable(),
+        ))
+        .order(u::created_at.desc())
+        .load(&mut conn)
+        .map_err(|e| {
+            eprintln!("list_users error: {:?}", e);
+            StatusCode::INTERNAL_SERVER_ERROR
+        })?;
 
-    Ok(Json(UsersResponse { users: list }))
+    let users = rows
+        .into_iter()
+        .map(|(user_id, user_username, user_email, user_full_name, user_gender, user_created_at, role_key)| {
+            AdminUserDto {
+                id: user_id,
+                username: user_username,
+                email: user_email,
+                full_name: user_full_name,
+                gender: user_gender,
+                created_at: user_created_at,
+                role: role_key.unwrap_or_else(|| "guest".to_string()),
+            }
+        })
+        .collect();
+
+    Ok(Json(UsersResponse { users }))
 }
 
 pub async fn create_user(
@@ -77,7 +132,8 @@ pub async fn create_user(
         gender: Some(payload.gender.trim().to_string()),
         email: Some(payload.email.trim().to_string()),
     };
-    let created = diesel::insert_into(users)
+
+    let created = diesel::insert_into(u::users)
         .values(&new_user)
         .returning(User::as_select())
         .get_result::<User>(&mut conn)
@@ -111,6 +167,30 @@ let result: HashResult  = diesel::sql_query("SELECT crypt($1, gen_salt('bf')) as
             StatusCode::INTERNAL_SERVER_ERROR
         })?;
 
+    let role_key = payload.role.trim().to_lowercase();
+
+    let role_id: Uuid = roles::table
+        .filter(roles::key.eq(role_key.clone()))
+        .select(roles::id)
+        .first(&mut conn)
+        .map_err(|e| {
+        eprintln!("Failed to find role '{}': {:?}", role_key, e);
+        StatusCode::BAD_REQUEST // или NOT_FOUND, если хотите различать
+    })?;
+
+    diesel::insert_into(user_roles::table)
+        .values((
+            user_roles::user_id.eq(created.id),
+            user_roles::role_id.eq(role_id),
+            user_roles::assigned_by.eq(Some(ctx.user_id)),
+        ))
+        .on_conflict_do_nothing()
+        .execute(&mut conn)
+        .map_err(|e| {
+        eprintln!("Failed to assign role: {:?}", e);
+        StatusCode::INTERNAL_SERVER_ERROR
+    })?;
+
     write_audit(
         &mut conn,
         Some(ctx.user_id),
@@ -121,6 +201,7 @@ let result: HashResult  = diesel::sql_query("SELECT crypt($1, gen_salt('bf')) as
             "auth0_id": created.auth0_id,
             "email": created.email,
             "username": created.username,
+            "role": role_key,
         })),
     ).map_err(|e| {
         eprintln!("Failed to write audit log: {:?}", e);
@@ -140,7 +221,7 @@ pub async fn update_user(
 
     let mut conn = state.pool.get().map_err(|_| StatusCode::SERVICE_UNAVAILABLE)?;
 
-    let updated = diesel::update(users.find(user_id))
+    let updated = diesel::update(u::users.find(user_id))
         .set(&payload)
         .get_result::<User>(&mut conn)
         .map_err(|e| {
@@ -173,7 +254,7 @@ pub async fn delete_user(
 
     let mut conn = state.pool.get().map_err(|_| StatusCode::SERVICE_UNAVAILABLE)?;
 
-    let affected = diesel::delete(users.find(user_id))
+    let affected = diesel::delete(u::users.find(user_id))
         .execute(&mut conn)
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
