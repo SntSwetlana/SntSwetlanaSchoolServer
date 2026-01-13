@@ -6,7 +6,11 @@ use crate::{models::{User},
     schema::users::dsl::*};
 use serde::Serialize;
 use crate::AppState;
-
+use crate::api::admin::users::*;
+#[derive(Serialize)]
+pub struct UsersResponse {
+    pub users: Vec<User>,
+}
 #[derive(Serialize)]
 pub struct MeResponse {
     pub id: String,
@@ -21,13 +25,13 @@ pub async fn me_handler(Extension(user): Extension<AuthenticatedUser>) -> Json<M
         email: user.email,
     })
 }
-pub async fn get_users(State(state): State<AppState>) -> Json<Vec<User>> {
+pub async fn get_users(State(state): State<AppState>) -> Json<UsersResponse> {
     let mut conn = state.pool.get().unwrap();
 
     let result = users
         .load::<User>(&mut conn)
         .expect("Failed to load users");
 
-    Json(result)
+    Json(UsersResponse { users: result })
 }
 

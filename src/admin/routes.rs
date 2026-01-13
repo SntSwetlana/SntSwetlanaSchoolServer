@@ -13,7 +13,7 @@ use crate::schema::users::dsl::*;
 use crate::{models::{NewUser,UpdateUser}};
 
 use crate::schema::{roles, user_roles};
-use crate::auth::middleware::AuthContext;
+use crate:: auth::context::AuthContext;
 use crate::models::audit::write_audit;
 use crate::admin::views::{UserRow, AdminUsersTemplate};
 
@@ -102,7 +102,7 @@ pub async fn admin_login_page() -> Html<&'static str> {
 </html>"#)
 }
 
-pub async fn admin_login_submit(
+pub async fn admin_login_submit( // обработка локальной формы логина
     cookies: Cookies,
     Form(form): Form<AdminLoginForm>,
 ) -> Result<impl IntoResponse, StatusCode> {
@@ -121,7 +121,7 @@ pub async fn admin_login_submit(
     }
 }
 
-pub async fn admin_logout(cookies: Cookies) -> impl IntoResponse {
+pub async fn admin_logout(cookies: Cookies) -> impl IntoResponse {// обработка локальной формы логина
     let mut c = Cookie::new("admin_session", "");
     c.set_path("/");
     cookies.remove(c);

@@ -1,25 +1,34 @@
 use axum::{
     extract::Request,
-    http::StatusCode,
+    http::{header, HeaderValue, StatusCode},
     middleware::Next,
-    response::{IntoResponse, Response, Redirect},
+    response::Response,
 };
-use tower_cookies::Cookies;
+use base64::{engine::general_purpose, Engine as _};
 
-pub async fn admin_middleware(
-    cookies: Cookies,
-    req: Request,
-    next: Next,
-) -> Result<Response, StatusCode> {
-    let ok = cookies
-        .get("admin_session")
-        .map(|c| c.value() == "ok") // минимально; ниже улучшения
-        .unwrap_or(false);
+pub async fn admin_middleware(req: Request, next: Next) -> Result<Response, StatusCode> {
+    let expected_user =
+        std::env::var("ADMIN_LOGIN").map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let expected_pass =
+        std::env::var("ADMIN_PASSWORD").map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    if !ok {
-        return Ok(Redirect::to("/admin/login").into_response());
+    let auth = req
+        .headers()
+        .get(header::AUTHORIZATION)
+        .and_then(|v| v.to_str().ok())
+        .ok_or(StatusCode::UNAUTHORIZED)?;
+
+    let b64 = auth.strip_prefix("Basic ").ok_or(StatusCode::UNAUTHORIZED)?;
+    let decoded = general_purpose::STANDARD
+        .decode(b64)
+        .map_err(|_| StatusCode::UNAUTHORIZED)?;
+
+    let decoded = String::from_utf8(decoded).map_err(|_| StatusCode::UNAUTHORIZED)?;
+    let (user, pass) = decoded.split_once(':').ok_or(StatusCode::UNAUTHORIZED)?;
+
+    if user != expected_user || pass != expected_pass {
+        return Err(StatusCode::UNAUTHORIZED);
     }
 
     Ok(next.run(req).await)
 }
-

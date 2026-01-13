@@ -71,6 +71,18 @@ diesel::table! {
 }
 
 diesel::table! {
+    sessions (id) {
+        id -> Uuid,
+        sid_hash -> Text,
+        user_id -> Uuid,
+        created_at -> Timestamptz,
+        last_seen_at -> Timestamptz,
+        expires_at -> Timestamptz,
+        revoked_at -> Nullable<Timestamptz>,
+    }
+}
+
+diesel::table! {
     user_roles (user_id, role_id) {
         user_id -> Uuid,
         role_id -> Uuid,
@@ -98,6 +110,7 @@ diesel::joinable!(content_versions -> users (created_by));
 diesel::joinable!(local_credentials -> users (user_id));
 diesel::joinable!(role_permissions -> permissions (permission_id));
 diesel::joinable!(role_permissions -> roles (role_id));
+diesel::joinable!(sessions -> users (user_id));
 diesel::joinable!(user_roles -> roles (role_id));
 
 diesel::allow_tables_to_appear_in_same_query!(
@@ -108,6 +121,7 @@ diesel::allow_tables_to_appear_in_same_query!(
     permissions,
     role_permissions,
     roles,
+    sessions,
     user_roles,
     users,
 );

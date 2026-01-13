@@ -1,40 +1,19 @@
 use axum::{
     body::Body,
-    extract::{State,Request},
+    extract::{Request, State},
     http::StatusCode,
     middleware::Next,
     response::Response,
 };
-
-use diesel::SelectableHelper;
-use diesel::ExpressionMethods;
-use diesel::QueryDsl;
-use diesel::RunQueryDsl;
-use diesel::OptionalExtension;
-use axum::extract::Extension;
-
-use tower_cookies::Cookies;
-use serde::Deserialize;
-use jsonwebtoken::{decode, decode_header, Algorithm, Validation};
-use crate::auth::jwks::{update_jwks, get_key};
-use crate::models::{User, NewUser};
-use crate::schema::users::dsl::*;
-use uuid::Uuid;
-use std::collections::HashSet;
 use diesel::prelude::*;
-use crate::schema::{user_roles, roles, role_permissions, permissions};
+use std::collections::HashSet;
+use tower_cookies::Cookies;
+use uuid::Uuid;
 
-
+use crate::auth::context::AuthContext;
+use crate::models::User;
+use crate::schema::{permissions, role_permissions, roles, user_roles, users};
 use crate::AppState;
-
-#[derive(Debug, Deserialize)]
-pub struct Claims {
-    pub sub: String,
-    pub email: Option<String>,
-    pub iss: String,
-    pub aud: String,
-    pub exp: usize,
-}
 
 #[derive(Clone, Debug)]
 pub struct AuthenticatedUser {
@@ -43,104 +22,65 @@ pub struct AuthenticatedUser {
     pub email: Option<String>,
 }
 
-#[derive(Clone, Debug)]
-pub struct AuthContext {
-    pub user_id: uuid::Uuid,
-    pub roles: Vec<String>,
-    pub permissions: HashSet<String>,
-}
-
-impl AuthContext {
-    pub fn has_role(&self, r: &str) -> bool {
-        self.roles.iter().any(|x| x == r)
-    }
-    pub fn has_perm(&self, p: &str) -> bool {
-        self.permissions.contains(p)
-    }
-}
-
-
-pub async fn admin_only(Extension(ctx): Extension<AuthContext>) -> StatusCode {
-    if !ctx.has_perm("roles.assign") { return StatusCode::FORBIDDEN; }
-    StatusCode::OK
-}
-
-
-pub async fn auth_middleware(
+/// Единственный источник аутентификации:
+/// - cookie `sid` (HttpOnly) -> server-side session in DB -> user_id
+/// - далее грузим роли/permissions -> кладём AuthContext в request extensions
+pub async fn session_middleware(
     State(state): State<AppState>,
     cookies: Cookies,
     mut req: Request,
     next: Next,
 ) -> Result<Response, StatusCode> {
+    // 1) достаём sid cookie
+    let sid = cookies
+        .get("sid")
+        .ok_or(StatusCode::UNAUTHORIZED)?
+        .value()
+        .to_string();
 
-    let token = cookies
-        .get("access_token")
-        .map(|c| c.value().to_string())
-        .ok_or(StatusCode::UNAUTHORIZED)?;
+    // 2) берём connection
+    let mut conn = state
+        .pool
+        .get()
+        .map_err(|_| StatusCode::SERVICE_UNAVAILABLE)?;
 
-    let head = decode_header(&token).map_err(|_| StatusCode::UNAUTHORIZED)?;
-    let kid = head.kid.ok_or(StatusCode::UNAUTHORIZED)?;
+    // 3) валидируем server-side session -> user_id
+    let user_id = crate::auth::session::lookup_session_user(
+        &mut conn,
+        &state.session_secret,
+        &sid,
+    )
+    .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
+    .ok_or(StatusCode::UNAUTHORIZED)?;
 
-    let mut key = get_key(&state.jwks, &kid).await;
-
-    if key.is_none() {
-        update_jwks(&state.jwks).await;
-        key = get_key(&state.jwks, &kid).await;
-    }
-
-    let key = key.ok_or(StatusCode::UNAUTHORIZED)?;
-
-    let mut validation = Validation::new(Algorithm::RS256);
-    validation.set_issuer(&[format!("https://{}/", std::env::var("AUTH0_DOMAIN").unwrap())]);
-    validation.set_audience(&[std::env::var("AUTH0_AUDIENCE").unwrap().as_str()]);
-
-    let claims = decode::<Claims>(&token, &key, &validation)
-        .map_err(|_| StatusCode::UNAUTHORIZED)?
-        .claims;
-
-    // 5. Find or create local user
-    let user = {
-        let mut conn = state.pool
-            .get()
-            .map_err(|_| StatusCode::SERVICE_UNAVAILABLE)?;
-
-        let found = users
-            .filter(auth0_id.eq(&claims.sub))
-            .select(User::as_select())
-            .first::<User>(&mut conn)
-            .optional()
-            .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-
-        match found {
-            Some(u) => u,
-            None => diesel::insert_into(users)
-                .values(NewUser {
-                    auth0_id: claims.sub.clone(),
-                    email: claims.email.clone(),
-                })
-                .returning(User::as_select())
-                .get_result::<User>(&mut conn)
-                .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?,
-        }
-    };
-    // 6. Put user into request context
-    req.extensions_mut().insert(AuthenticatedUser {
-        id: user.id,
-        auth0_id: user.auth0_id,
-        email: user.email,
-    });
-
-    let ctx = {
-        let mut conn = state.pool.get().map_err(|_| StatusCode::SERVICE_UNAVAILABLE)?;
-        load_auth_context(&mut conn, user.id).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
-    };
+    // 4) грузим auth context (roles/permissions)
+    let ctx = load_auth_context(&mut conn, user_id)
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
     req.extensions_mut().insert(ctx);
+
+    // 5) (Опционально) кладём AuthenticatedUser для удобства handler'ов
+    // Если тебе это не нужно — блок можно убрать.
+    let u = users::table
+        .find(user_id)
+        .select(User::as_select())
+        .first::<User>(&mut conn)
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+
+    req.extensions_mut().insert(AuthenticatedUser {
+        id: u.id,
+        auth0_id: u.auth0_id,
+        email: u.email,
+    });
 
     Ok(next.run(req).await)
 }
 
-fn load_auth_context(conn: &mut PgConnection, uid: uuid::Uuid) -> Result<AuthContext, diesel::result::Error> {
+/// Грузит roles + permissions из БД (RBAC).
+pub fn load_auth_context(
+    conn: &mut PgConnection,
+    uid: Uuid,
+) -> Result<AuthContext, diesel::result::Error> {
     // роли пользователя
     let role_keys: Vec<String> = user_roles::table
         .inner_join(roles::table.on(roles::id.eq(user_roles::role_id)))
@@ -164,29 +104,42 @@ fn load_auth_context(conn: &mut PgConnection, uid: uuid::Uuid) -> Result<AuthCon
     })
 }
 
-pub async fn require_admin(
-    req: Request<Body>,
-    next: Next
-) -> Result<Response, StatusCode> {
-    let ctx = req.extensions().get::<AuthContext>().ok_or(StatusCode::UNAUTHORIZED)?;
+/// Guard: доступ администратора (роль admin или permission roles.assign)
+pub async fn require_admin(req: Request<Body>, next: Next) -> Result<Response, StatusCode> {
+    let ctx = req
+        .extensions()
+        .get::<AuthContext>()
+        .ok_or(StatusCode::UNAUTHORIZED)?;
+
     if !(ctx.has_role("admin") || ctx.has_perm("roles.assign")) {
         return Err(StatusCode::FORBIDDEN);
     }
+
     Ok(next.run(req).await)
 }
 
 pub async fn require_teacher(req: Request<Body>, next: Next) -> Result<Response, StatusCode> {
-    let ctx = req.extensions().get::<AuthContext>().ok_or(StatusCode::UNAUTHORIZED)?;
+    let ctx = req
+        .extensions()
+        .get::<AuthContext>()
+        .ok_or(StatusCode::UNAUTHORIZED)?;
+
     if !(ctx.has_role("teacher") || ctx.has_role("admin")) {
         return Err(StatusCode::FORBIDDEN);
     }
+
     Ok(next.run(req).await)
 }
 
 pub async fn require_editor(req: Request<Body>, next: Next) -> Result<Response, StatusCode> {
-    let ctx = req.extensions().get::<AuthContext>().ok_or(StatusCode::UNAUTHORIZED)?;
+    let ctx = req
+        .extensions()
+        .get::<AuthContext>()
+        .ok_or(StatusCode::UNAUTHORIZED)?;
+
     if !(ctx.has_role("editor") || ctx.has_role("admin")) {
         return Err(StatusCode::FORBIDDEN);
     }
+
     Ok(next.run(req).await)
 }

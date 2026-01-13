@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-askama = "0.14.0"
+askama = "0.15.1"
 axum = "0.8.7"
 
 dotenvy = "0.15.7"
@@ -17,6 +17,8 @@ diesel_json = "0.3.0"
 
 diesel_migrations = "2.3.1"
 
+base64 = "0.22"
+
 tower = "0.5.2"
 tower-cookies = "0.11"
 tower-http = { version = "0.6.7", features = ["cors"]}
@@ -27,4 +29,9 @@ url = "2"
 uuid = { version = "1.19.0", features = ["serde", "v4"] }
 jsonwebtoken = { version = "10.2.0", features = ["rust_crypto"] }
 chrono = { version = "0.4.42", features = ["serde"] }
+utoipa = { version = "5.4.0", features = ["axum_extras", "uuid"] }
+utoipa-swagger-ui = "9.0.2"
+sha2 = "0.10.9"
+hex = "0.4.3"
+time = "0.3.45"
 

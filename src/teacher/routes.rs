@@ -1,6 +1,6 @@
 use axum::response::Html;
 use axum::extract::Extension;
-use crate::auth::middleware::AuthContext;
+use crate:: auth::context::AuthContext;
 use crate::teacher::views::TeacherIndexTemplate;
 use askama::Template;
 
