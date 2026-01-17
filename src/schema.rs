@@ -25,6 +25,8 @@ diesel::table! {
         published_at -> Nullable<Timestamp>,
         is_liquid -> Bool,
         blocked_reason -> Nullable<Text>,
+        difficulty -> Nullable<Text>,
+        time_estimate_minutes -> Int4,
     }
 }
 
@@ -83,6 +85,28 @@ diesel::table! {
 }
 
 diesel::table! {
+    subject_content_items (subject_id, content_id) {
+        subject_id -> Uuid,
+        content_id -> Uuid,
+    }
+}
+
+diesel::table! {
+    subjects (id) {
+        id -> Uuid,
+        name -> Text,
+        description -> Nullable<Text>,
+        color -> Text,
+        icon -> Nullable<Text>,
+        order -> Int4,
+        is_active -> Bool,
+        created_at -> Timestamp,
+        updated_at -> Timestamp,
+        created_by -> Uuid,
+    }
+}
+
+diesel::table! {
     user_roles (user_id, role_id) {
         user_id -> Uuid,
         role_id -> Uuid,
@@ -111,6 +135,9 @@ diesel::joinable!(local_credentials -> users (user_id));
 diesel::joinable!(role_permissions -> permissions (permission_id));
 diesel::joinable!(role_permissions -> roles (role_id));
 diesel::joinable!(sessions -> users (user_id));
+diesel::joinable!(subject_content_items -> content_items (content_id));
+diesel::joinable!(subject_content_items -> subjects (subject_id));
+diesel::joinable!(subjects -> users (created_by));
 diesel::joinable!(user_roles -> roles (role_id));
 
 diesel::allow_tables_to_appear_in_same_query!(
@@ -122,6 +149,8 @@ diesel::allow_tables_to_appear_in_same_query!(
     role_permissions,
     roles,
     sessions,
+    subject_content_items,
+    subjects,
     user_roles,
     users,
 );

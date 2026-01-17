@@ -54,7 +54,22 @@ async fn main() {
     )
     .layer(axum::middleware::from_fn(auth::middleware::require_admin));
 
+    let subjects_read = Router::new()
+    .route("/subjects", get(crate::api::subjects::routes::list_subjects))
+    .route("/subjects/{id}", get(crate::api::subjects::routes::get_subject));
+
+    let subjects_write = Router::new()
+    .route("/subjects", post(crate::api::subjects::routes::create_subject))
+    .route("/subjects/{id}",
+        axum::routing::put(crate::api::subjects::routes::update_subject)
+            .delete(crate::api::subjects::routes::delete_subject)
+    )
+    .layer(axum::middleware::from_fn(auth::middleware::require_admin)); // или require_editor
+
+
     let api_protected = Router::new()
+        .merge(subjects_read)
+        .merge(subjects_write)
         .nest("/admin", admin_routes)
         .route("/me", get(routes::me_handler))
 //        .route("/users", get(routes::get_users))
