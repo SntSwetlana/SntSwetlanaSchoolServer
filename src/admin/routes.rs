@@ -159,7 +159,7 @@ pub async fn create_user(
 pub async fn update_user(
     Path(user_id): Path<Uuid>,
     State(state): State<AppState>,
-    Json(update): Json<UpdateUser>,
+    Json(update): Json<UpdateUserDb>,
 ) -> Json<User> {
     let mut conn = state.pool.get().unwrap();
 

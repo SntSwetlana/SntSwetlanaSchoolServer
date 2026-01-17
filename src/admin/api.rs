@@ -215,7 +215,7 @@ pub async fn update_user(
     Path(user_id): Path<Uuid>,
     State(state): State<AppState>,
     Extension(ctx): Extension<AuthContext>,
-    Json(payload): Json<UpdateUser>,
+    Json(payload): Json<UpdateUserDb>,
 ) -> Result<Json<User>, StatusCode> {
     // if !ctx.has_perm("users.update") { return Err(StatusCode::FORBIDDEN); }
 

@@ -8,16 +8,11 @@ use diesel::prelude::*;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-use crate::{
-    models::users::{AdminCreateUserReq, NewLocalCredentialDb, NewUserDb, User}, 
-    //schema::{local_credentials, roles, user_roles},
-};
+use crate::models::{UpdateUserDb, UpdateUserReq, users::{AdminCreateUserReq, NewLocalCredentialDb, NewUserDb, User}};
 
 use crate::{
     AppState,
-    models::{UpdateUser},
-    //schema::users::dsl::*,
-     auth::context::AuthContext,
+    auth::context::AuthContext,
     models::audit::write_audit,
 };
 use crate::schema::{users, user_roles, roles, local_credentials};
@@ -215,17 +210,17 @@ pub async fn update_user(
     Path(user_id): Path<Uuid>,
     State(state): State<AppState>,
     Extension(ctx): Extension<AuthContext>,
-    Json(payload): Json<UpdateUser>,
+    Json(req): Json<UpdateUserReq>,
 ) -> Result<Json<User>, StatusCode> {
-    // if !ctx.has_perm("users.update") { return Err(StatusCode::FORBIDDEN); }
-
     let mut conn = state.pool.get().map_err(|_| StatusCode::SERVICE_UNAVAILABLE)?;
 
+    let (changes, role_opt) = <(UpdateUserDb, Option<String>)>::from(req);
+
+    // 1) update users
     let updated = diesel::update(u::users.find(user_id))
-        .set(&payload)
+        .set(&changes)
         .get_result::<User>(&mut conn)
         .map_err(|e| {
-            // если id не найден
             if let diesel::result::Error::NotFound = e {
                 StatusCode::NOT_FOUND
             } else {
@@ -233,17 +228,35 @@ pub async fn update_user(
             }
         })?;
 
-    write_audit(
-        &mut conn,
-        Some(ctx.user_id),
-        "user.update",
-        "user",
-        updated.id,
-        Some(serde_json::json!({ "email": updated.email })),
-    ).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    // 2) update role (если пришла)
+    if let Some(role_key_raw) = role_opt {
+        let role_key = role_key_raw.trim().to_lowercase();
+        if !role_key.is_empty() {
+            let rid: Uuid = roles::table
+                .filter(roles::key.eq(&role_key))
+                .select(roles::id)
+                .first(&mut conn)
+                .map_err(|_| StatusCode::BAD_REQUEST)?;
+
+            // если у тебя "одна роль на пользователя" — заменяем:
+            diesel::delete(user_roles::table.filter(user_roles::user_id.eq(user_id)))
+                .execute(&mut conn)
+                .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+
+            diesel::insert_into(user_roles::table)
+                .values((
+                    user_roles::user_id.eq(user_id),
+                    user_roles::role_id.eq(rid),
+                    user_roles::assigned_by.eq(Some(ctx.user_id)),
+                ))
+                .execute(&mut conn)
+                .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+        }
+    }
 
     Ok(Json(updated))
 }
+
 
 pub async fn delete_user(
     Path(user_id): Path<Uuid>,

@@ -4,8 +4,6 @@ mod db;
 mod models;
 mod routes;
 mod schema;
-mod teacher;
-mod editor;
 
 use axum::{routing::{get, post}, Router};
 use std::net::SocketAddr;

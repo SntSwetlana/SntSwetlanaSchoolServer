@@ -1,5 +1,5 @@
 use axum::{
-    extract::{State, Json},
+    extract::{State, Json, Extension},
     http::StatusCode,
     response::IntoResponse,
 };
@@ -8,10 +8,8 @@ use tower_cookies::{Cookies, Cookie};
 use diesel::prelude::*;
 use diesel::sql_types::Bool;
 
-use crate::{AppState, auth::context::AuthContext, models::User, schema::users::dsl::*};
+use crate::{AppState, auth::context::AuthContext, models::User, schema::users::dsl  as u};
 use uuid::Uuid;
-use axum::extract::Extension;
-
 #[derive(diesel::QueryableByName)]
 struct PasswordOkRow {
     #[diesel(sql_type = Bool)]
@@ -47,9 +45,9 @@ pub async fn login(
 
     let uname = req.username.trim().to_string();
 
-    let user_id: Uuid = match users
-        .filter(username.eq(Some(uname)))
-        .select(id)
+    let user_id: Uuid = match u::users
+        .filter(u::username.eq(Some(uname)))
+        .select(u::id)
         .first::<Uuid>(&mut conn)
     {
         Ok(uid) => uid,
@@ -154,12 +152,91 @@ pub async fn logout(
 #[derive(Serialize)]
 pub struct SessionMeResponse {
     pub ok: bool,
+    pub id: String,
+    pub username: String,
+    pub email: Option<String>,
+    pub gender: Option<String>,
     pub roles: Vec<String>,
+    pub permissions: Vec<String>,
 }
 
-pub async fn session_me(Extension(ctx): Extension<AuthContext>) -> impl IntoResponse {
-    (StatusCode::OK, Json(SessionMeResponse { ok: true, roles: ctx.roles }))
+pub async fn session_me(
+    State(state): State<AppState>,
+    Extension(ctx): Extension<AuthContext>,
+) -> impl IntoResponse {
+    let mut conn = match state.pool.get() {
+        Ok(c) => c,
+        Err(_) => {
+            return (
+                StatusCode::SERVICE_UNAVAILABLE,
+                Json(SessionMeResponse {
+                    ok: false,
+                    id: "".into(),
+                    username: "".into(),
+                    email: None,
+                    gender: None,
+                    roles: vec![],
+                    permissions: vec![],
+                }),
+            );
+        }
+    };
+
+    // ВАЖНО: здесь мы получаем *ЗНАЧЕНИЯ*, а не колонки
+    let row = u::users
+        .find(ctx.user_id)
+        .select((u::id, u::username, u::email, u::gender))
+        .first::<(Uuid, Option<String>, Option<String>, Option<String>)>(&mut conn);
+
+    let (id, username_opt, email, gender) = match row {
+        Ok(v) => v,
+        Err(diesel::result::Error::NotFound) => {
+            return (
+                StatusCode::UNAUTHORIZED,
+                Json(SessionMeResponse {
+                    ok: false,
+                    id: "".into(),
+                    username: "".into(),
+                    email: None,
+                    gender: None,
+                    roles: vec![],
+                    permissions: vec![],
+                }),
+            );
+        }
+        Err(_) => {
+            return (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(SessionMeResponse {
+                    ok: false,
+                    id: "".into(),
+                    username: "".into(),
+                    email: None,
+                    gender: None,
+                    roles: vec![],
+                    permissions: vec![],
+                }),
+            );
+        }
+    };
+
+    let mut permissions: Vec<String> = ctx.permissions.into_iter().collect();
+    permissions.sort();
+
+    (
+        StatusCode::OK,
+        Json(SessionMeResponse {
+            ok: true,
+            id: id.to_string(),
+            username: username_opt.unwrap_or_else(|| "User".to_string()),
+            email,
+            gender,
+            roles: ctx.roles,
+            permissions,
+        }),
+    )
 }
+
 #[derive(Serialize)]
 pub struct MeResponse {
     pub id: String,
@@ -172,7 +249,7 @@ pub async fn me_handler(
     Extension(ctx): Extension<AuthContext>,
 ) -> Json<MeResponse> {
     let mut conn = state.pool.get().unwrap();
-    let u: User = users.find(ctx.user_id).first(&mut conn).unwrap();
+    let u: User = u::users.find(ctx.user_id).first(&mut conn).unwrap();
 
     Json(MeResponse {
         id: u.id.to_string(),

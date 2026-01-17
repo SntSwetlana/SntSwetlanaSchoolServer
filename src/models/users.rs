@@ -27,6 +27,38 @@ pub struct AdminCreateUserReq {
     pub gender: String,
 }
 
+#[derive(Debug, Deserialize)]
+pub struct UpdateUserReq {
+    pub email: Option<String>,
+    pub username: Option<String>,
+    pub full_name: Option<String>,
+    pub gender: Option<String>,
+    pub role: Option<String>, // это НЕ колонка users
+}
+
+#[derive(Debug, AsChangeset)]
+#[diesel(table_name = users)]
+pub struct UpdateUserDb {
+    pub email: Option<String>,
+    pub username: Option<String>,
+    pub full_name: Option<String>,
+    pub gender: Option<String>,
+}
+
+impl From<UpdateUserReq> for (UpdateUserDb, Option<String>) {
+    fn from(req: UpdateUserReq) -> Self {
+        (
+            UpdateUserDb {
+                email: req.email,
+                username: req.username,
+                full_name: req.full_name,
+                gender: req.gender,
+            },
+            req.role,
+        )
+    }
+}
+
 #[derive(Insertable, Debug)]
 #[diesel(table_name = users)]
 pub struct NewUserDb {
