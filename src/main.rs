@@ -66,10 +66,14 @@ async fn main() {
     )
     .layer(axum::middleware::from_fn(auth::middleware::require_admin)); // или require_editor
 
+    let library_routes = Router::new()
+        .route("/library/publishers", get(crate::api::library::routes::list_publishers_tree));
+
 
     let api_protected = Router::new()
         .merge(subjects_read)
         .merge(subjects_write)
+        .merge(library_routes)
         .nest("/admin", admin_routes)
         .route("/me", get(routes::me_handler))
 //        .route("/users", get(routes::get_users))

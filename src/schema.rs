@@ -43,6 +43,63 @@ diesel::table! {
 }
 
 diesel::table! {
+    course_levels (id) {
+        id -> Uuid,
+        course_id -> Uuid,
+        level_code -> Text,
+        title -> Text,
+        order_index -> Int4,
+        metadata -> Nullable<Jsonb>,
+        created_at -> Timestamp,
+        updated_at -> Timestamp,
+        created_by -> Uuid,
+    }
+}
+
+diesel::table! {
+    course_modules (id) {
+        id -> Uuid,
+        unit_id -> Uuid,
+        module_code -> Nullable<Text>,
+        title -> Text,
+        order_index -> Int4,
+        metadata -> Nullable<Jsonb>,
+        created_at -> Timestamp,
+        updated_at -> Timestamp,
+        created_by -> Uuid,
+    }
+}
+
+diesel::table! {
+    course_series (id) {
+        id -> Uuid,
+        publisher_id -> Uuid,
+        key -> Text,
+        title -> Text,
+        description -> Nullable<Text>,
+        language -> Text,
+        is_active -> Bool,
+        created_at -> Timestamp,
+        updated_at -> Timestamp,
+        created_by -> Uuid,
+    }
+}
+
+diesel::table! {
+    course_units (id) {
+        id -> Uuid,
+        level_id -> Uuid,
+        unit_code -> Nullable<Text>,
+        title -> Text,
+        order_index -> Int4,
+        metadata -> Nullable<Jsonb>,
+        created_at -> Timestamp,
+        updated_at -> Timestamp,
+        created_by -> Uuid,
+    }
+}
+
+diesel::table! {
     local_credentials (user_id) {
         user_id -> Uuid,
         password_hash -> Text,
@@ -54,6 +111,18 @@ diesel::table! {
     permissions (id) {
         id -> Uuid,
         key -> Text,
+    }
+}
+
+diesel::table! {
+    publishers (id) {
+        id -> Uuid,
+        key -> Text,
+        name -> Text,
+        website -> Nullable<Text>,
+        created_at -> Timestamp,
+        updated_at -> Timestamp,
+        created_by -> Uuid,
     }
 }
 
@@ -131,7 +200,16 @@ diesel::joinable!(audit_log -> users (actor_id));
 diesel::joinable!(content_items -> users (created_by));
 diesel::joinable!(content_versions -> content_items (content_id));
 diesel::joinable!(content_versions -> users (created_by));
+diesel::joinable!(course_levels -> course_series (course_id));
+diesel::joinable!(course_levels -> users (created_by));
+diesel::joinable!(course_modules -> course_units (unit_id));
+diesel::joinable!(course_modules -> users (created_by));
+diesel::joinable!(course_series -> publishers (publisher_id));
+diesel::joinable!(course_series -> users (created_by));
+diesel::joinable!(course_units -> course_levels (level_id));
+diesel::joinable!(course_units -> users (created_by));
 diesel::joinable!(local_credentials -> users (user_id));
+diesel::joinable!(publishers -> users (created_by));
 diesel::joinable!(role_permissions -> permissions (permission_id));
 diesel::joinable!(role_permissions -> roles (role_id));
 diesel::joinable!(sessions -> users (user_id));
@@ -144,8 +222,13 @@ diesel::allow_tables_to_appear_in_same_query!(
     audit_log,
     content_items,
     content_versions,
+    course_levels,
+    course_modules,
+    course_series,
+    course_units,
     local_credentials,
     permissions,
+    publishers,
     role_permissions,
     roles,
     sessions,
