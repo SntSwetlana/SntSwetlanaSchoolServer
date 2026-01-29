@@ -68,9 +68,48 @@ async fn main() {
 
     let library_routes = Router::new()
         .route("/library/publishers", get(crate::api::library::routes::list_publishers_tree));
+    let quizlet_card_routes = Router::new()
+        .route(
+            "/quizlet/sets/{set_id}/cards",
+            get(crate::api::quizlet::cards::list_cards)
+                .post(crate::api::quizlet::cards::create_card),
+        )
+        .route(
+            "/quizlet/sets/{set_id}/cards/{card_id}",   
+            get(crate::api::quizlet::cards::get_card)
+                .put(crate::api::quizlet::cards::update_card)
+                .delete(crate::api::quizlet::cards::delete_card),
+    );
 
+    let quizlet_set_routes = Router::new()
+        .route("/quizlet/sets", get(crate::api::quizlet::full::list_sets_grouped))
+        .route("/quizlet/sets/{set_id}", axum::routing::put(crate::api::quizlet::sets::upsert_set))
+        .route("/quizlet/sets/{set_id}/cards:replace", axum::routing::put(crate::api::quizlet::cards_replace::replace_cards))
+        .route("/quizlet/sets/{set_id}/full", get(crate::api::quizlet::full::get_set_full));
 
+    let quizlet_folder_routes = Router::new()
+        .route(
+            "/quizlet/folders",
+            get(crate::api::quizlet::folders::list_folders)
+                .post(crate::api::quizlet::folders::create_folder),
+        )
+        .route(
+            "/quizlet/folders/{folder_id}",
+            get(crate::api::quizlet::folders::get_folder)
+                .put(crate::api::quizlet::folders::rename_folder)
+                .delete(crate::api::quizlet::folders::delete_folder),
+        )
+        .route(
+            "/quizlet/folders/{folder_id}/sets",
+            get(crate::api::quizlet::folders::list_folder_sets),
+        )
+        .route(
+            "/quizlet/folders/{folder_id}/sets:replace",
+            axum::routing::put(crate::api::quizlet::folders::replace_folder_sets),
+        );
     let api_protected = Router::new()
+        .merge(quizlet_card_routes)
+        .merge(quizlet_set_routes)
         .merge(subjects_read)
         .merge(subjects_write)
         .merge(library_routes)

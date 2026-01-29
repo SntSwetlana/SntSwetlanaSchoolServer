@@ -1,10 +1,7 @@
 use axum::{extract::State, response::IntoResponse, Json};
 use serde::Serialize;
 use uuid::Uuid;
-
 use crate::{AppState};
-//use crate::db::with_conn; // если у вас есть helper; если нет — покажу ниже
-
 use diesel::prelude::*;
 use crate::schema::{publishers, course_series, course_levels, course_units, course_modules};
 

@@ -1,5 +1,11 @@
 // @generated automatically by Diesel CLI.
 
+pub mod sql_types {
+    #[derive(diesel::query_builder::QueryId, Clone, diesel::sql_types::SqlType)]
+    #[diesel(postgres_type(name = "tsvector", schema = "pg_catalog"))]
+    pub struct Tsvector;
+}
+
 diesel::table! {
     audit_log (id) {
         id -> Uuid,
@@ -127,6 +133,51 @@ diesel::table! {
 }
 
 diesel::table! {
+    quizlet_cards (id) {
+        id -> Uuid,
+        set_id -> Uuid,
+        position -> Int4,
+        term -> Text,
+        explanation -> Text,
+        image_url -> Nullable<Text>,
+        image_alt -> Nullable<Text>,
+        image_data -> Nullable<Bytea>,
+        image_mime -> Nullable<Text>,
+        created_at -> Timestamptz,
+    }
+}
+
+diesel::table! {
+    quizlet_folders (id) {
+        id -> Uuid,
+        title -> Text,
+        owner_id -> Nullable<Uuid>,
+        created_at -> Timestamptz,
+        updated_at -> Timestamptz,
+    }
+}
+
+diesel::table! {
+    use diesel::sql_types::*;
+    use super::sql_types::Tsvector;
+
+    quizlet_sets (id) {
+        id -> Uuid,
+        slug -> Text,
+        title -> Text,
+        description -> Nullable<Text>,
+        language_level -> Nullable<Text>,
+        textbook_id -> Nullable<Uuid>,
+        folder_id -> Nullable<Uuid>,
+        owner_id -> Nullable<Uuid>,
+        created_at -> Timestamptz,
+        updated_at -> Timestamptz,
+        source_url -> Nullable<Text>,
+        title_tsv -> Nullable<Tsvector>,
+    }
+}
+
+diesel::table! {
     role_permissions (role_id, permission_id) {
         role_id -> Uuid,
         permission_id -> Uuid,
@@ -210,6 +261,8 @@ diesel::joinable!(course_units -> course_levels (level_id));
 diesel::joinable!(course_units -> users (created_by));
 diesel::joinable!(local_credentials -> users (user_id));
 diesel::joinable!(publishers -> users (created_by));
+diesel::joinable!(quizlet_cards -> quizlet_sets (set_id));
+diesel::joinable!(quizlet_sets -> quizlet_folders (folder_id));
 diesel::joinable!(role_permissions -> permissions (permission_id));
 diesel::joinable!(role_permissions -> roles (role_id));
 diesel::joinable!(sessions -> users (user_id));
@@ -229,6 +282,9 @@ diesel::allow_tables_to_appear_in_same_query!(
     local_credentials,
     permissions,
     publishers,
+    quizlet_cards,
+    quizlet_folders,
+    quizlet_sets,
     role_permissions,
     roles,
     sessions,
