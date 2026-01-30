@@ -108,6 +108,7 @@ async fn main() {
             axum::routing::put(crate::api::quizlet::folders::replace_folder_sets),
         );
     let api_protected = Router::new()
+        .merge(quizlet_folder_routes)
         .merge(quizlet_card_routes)
         .merge(quizlet_set_routes)
         .merge(subjects_read)

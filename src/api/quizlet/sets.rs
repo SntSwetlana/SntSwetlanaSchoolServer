@@ -4,10 +4,13 @@ use diesel::prelude::*;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-use crate::AppState;
+use crate::{AppState};
 use crate::schema::quizlet_sets::dsl as qs;
+use crate::schema::quizlet_sets;
 
-#[derive(Debug, Serialize, Queryable)]
+#[derive(Debug, Serialize, Queryable,Selectable)]
+#[diesel(table_name = quizlet_sets)]
+#[diesel(check_for_backend(diesel::pg::Pg))]
 pub struct QuizletSet {
     pub id: Uuid,
     pub slug: String,

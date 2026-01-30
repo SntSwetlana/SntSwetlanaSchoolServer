@@ -52,13 +52,13 @@ pub async fn list_folders(
     // В diesel для count лучше select + group_by
     let rows: Vec<(Uuid, String, DateTime<Utc>, i64)> = quizlet_folders::table
         .left_join(quizlet_sets::table.on(quizlet_sets::folder_id.eq(quizlet_folders::id.nullable())))
+        .group_by((quizlet_folders::id, quizlet_folders::title, quizlet_folders::updated_at))
         .select((
             quizlet_folders::id,
             quizlet_folders::title,
             quizlet_folders::updated_at,
-            diesel::dsl::count(quizlet_sets::id),
+            diesel::dsl::count(quizlet_sets::id.nullable()),
         ))
-        .group_by((quizlet_folders::id, quizlet_folders::title, quizlet_folders::updated_at))
         .order(quizlet_folders::updated_at.desc())
         .load(&mut conn)
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
