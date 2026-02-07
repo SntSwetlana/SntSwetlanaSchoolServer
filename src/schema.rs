@@ -148,6 +148,15 @@ diesel::table! {
 }
 
 diesel::table! {
+    quizlet_folder_sets (folder_id, set_id) {
+        folder_id -> Uuid,
+        set_id -> Uuid,
+        position -> Int4,
+        created_at -> Timestamptz,
+    }
+}
+
+diesel::table! {
     quizlet_folders (id) {
         id -> Uuid,
         title -> Text,
@@ -168,7 +177,6 @@ diesel::table! {
         description -> Nullable<Text>,
         language_level -> Nullable<Text>,
         textbook_id -> Nullable<Uuid>,
-        folder_id -> Nullable<Uuid>,
         owner_id -> Nullable<Uuid>,
         created_at -> Timestamptz,
         updated_at -> Timestamptz,
@@ -262,7 +270,8 @@ diesel::joinable!(course_units -> users (created_by));
 diesel::joinable!(local_credentials -> users (user_id));
 diesel::joinable!(publishers -> users (created_by));
 diesel::joinable!(quizlet_cards -> quizlet_sets (set_id));
-diesel::joinable!(quizlet_sets -> quizlet_folders (folder_id));
+diesel::joinable!(quizlet_folder_sets -> quizlet_folders (folder_id));
+diesel::joinable!(quizlet_folder_sets -> quizlet_sets (set_id));
 diesel::joinable!(role_permissions -> permissions (permission_id));
 diesel::joinable!(role_permissions -> roles (role_id));
 diesel::joinable!(sessions -> users (user_id));
@@ -283,6 +292,7 @@ diesel::allow_tables_to_appear_in_same_query!(
     permissions,
     publishers,
     quizlet_cards,
+    quizlet_folder_sets,
     quizlet_folders,
     quizlet_sets,
     role_permissions,

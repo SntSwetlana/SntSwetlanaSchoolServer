@@ -101,11 +101,16 @@ async fn main() {
         )
         .route(
             "/quizlet/folders/{folder_id}/sets",
-            get(crate::api::quizlet::folders::list_folder_sets),
+            get(crate::api::quizlet::folders::list_folder_sets)
+            .post(crate::api::quizlet::folders::add_sets_to_folder),
         )
         .route(
             "/quizlet/folders/{folder_id}/sets:replace",
             axum::routing::put(crate::api::quizlet::folders::replace_folder_sets),
+        )
+        .route(
+            "/quizlet/folders/{folder_id}/sets/{set_id}",
+            axum::routing::delete(crate::api::quizlet::folders::remove_set_from_folder),
         );
     let api_protected = Router::new()
         .merge(quizlet_folder_routes)

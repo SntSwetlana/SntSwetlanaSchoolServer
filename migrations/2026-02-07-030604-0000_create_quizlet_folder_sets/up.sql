@@ -1,3 +1,4 @@
+-- Your SQL goes here
 -- 1) join-table
 CREATE TABLE quizlet_folder_sets (
   folder_id uuid NOT NULL REFERENCES quizlet_folders(id) ON DELETE CASCADE,
@@ -8,8 +9,8 @@ CREATE TABLE quizlet_folder_sets (
 );
 
 -- 2) индексы для быстрых выборок
-CREATE INDEX idx_quizlet_folder_sets_folder ON quizlet_folder_sets(folder_id);
-CREATE INDEX idx_quizlet_folder_sets_set    ON quizlet_folder_sets(set_id);
+CREATE INDEX idx_qfs_folder  ON quizlet_folder_sets(folder_id);
+CREATE INDEX idx_qfs_set    ON quizlet_folder_sets(set_id);
 
 -- 3) (опционально) перенести текущие связи из quizlet_sets.folder_id в join-table
 INSERT INTO quizlet_folder_sets(folder_id, set_id, position)

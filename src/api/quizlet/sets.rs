@@ -18,7 +18,6 @@ pub struct QuizletSet {
     pub description: Option<String>,
     pub language_level: Option<String>,
     pub textbook_id: Option<Uuid>,
-    pub folder_id: Option<Uuid>,
     pub owner_id: Option<Uuid>,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
