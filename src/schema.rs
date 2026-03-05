@@ -114,6 +114,24 @@ diesel::table! {
 }
 
 diesel::table! {
+    news_posts (id) {
+        id -> Uuid,
+        kind -> Text,
+        title -> Text,
+        excerpt -> Nullable<Text>,
+        body -> Nullable<Text>,
+        source -> Nullable<Text>,
+        url -> Nullable<Text>,
+        created_at -> Timestamptz,
+        level -> Text,
+        image_url -> Nullable<Text>,
+        phonetic -> Nullable<Text>,
+        is_hot -> Bool,
+        tags -> Array<Nullable<Text>>,
+    }
+}
+
+diesel::table! {
     permissions (id) {
         id -> Uuid,
         key -> Text,
@@ -289,6 +307,7 @@ diesel::allow_tables_to_appear_in_same_query!(
     course_series,
     course_units,
     local_credentials,
+    news_posts,
     permissions,
     publishers,
     quizlet_cards,

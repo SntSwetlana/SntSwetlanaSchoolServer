@@ -38,6 +38,7 @@ async fn main() {
     let api_public = Router::new()
         .route("/auth/login", post(auth::routes::login))
         .route("/auth/logout", post(auth::routes::logout))
+            .route("/news", get(crate::api::news::list_news))   // ✅ сюда
         .with_state(state.clone());
 
     // protected: всё бизнесовое

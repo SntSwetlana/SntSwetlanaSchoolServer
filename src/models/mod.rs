@@ -2,6 +2,7 @@ pub mod users;
 pub mod rbac;
 pub mod content;
 pub mod audit;
+pub mod news; 
 
 pub use users::*;
 pub use rbac::*;
