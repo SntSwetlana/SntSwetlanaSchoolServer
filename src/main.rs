@@ -16,6 +16,7 @@ use diesel::PgConnection;
 
 pub type DbPool = r2d2::Pool<ConnectionManager<PgConnection>>;
 use tower_cookies::CookieManagerLayer;
+use tower_http::services::ServeDir;
 
 #[derive(Clone)]
 pub struct AppState {
@@ -132,10 +133,23 @@ async fn main() {
     // общий app
     let app = Router::new()
         .nest("/api", api_public.merge(api_protected))
+        .nest_service("/images", ServeDir::new("images"))
         .layer(CookieManagerLayer::new());
 
     let addr = SocketAddr::from(([127, 0, 0, 1], 3000));
     println!("🚀 Server running on http://{addr}");
+
+    println!("cwd = {:?}", std::env::current_dir().unwrap());
+    println!("exists images = {}", std::path::Path::new("images").exists());
+    println!("exists server/images = {}", std::path::Path::new("server/images").exists());
+    println!(
+        "exists test file 1 = {}",
+        std::path::Path::new("images/idioms/B1/give-someone-the-cold-shoulder.png").exists()
+    );
+    println!(
+        "exists test file 2 = {}",
+        std::path::Path::new("server/images/idioms/B1/give-someone-the-cold-shoulder.png").exists()
+    );
 
     let listener = tokio::net::TcpListener::bind(addr)
         .await

@@ -1,0 +1,29 @@
+ Volume in drive E is New Volume
+ Volume Serial Number is 1424-7EDC
+
+ Directory of e:\___work___\_programming_\rust\SntSwetlanaSchool\server\images\idioms\B1
+
+03/06/2026  11:37 PM    <DIR>          .
+03/06/2026  02:52 PM    <DIR>          ..
+03/06/2026  11:37 PM                 0 1.txt
+03/06/2026  09:47 AM         2,797,543 a-blessing-in-disguise.png
+03/06/2026  09:51 AM         3,254,606 a-dime-a-dozen.png
+03/05/2026  01:40 PM         1,011,370 a-piece-of-cake.png
+03/06/2026  09:51 AM         3,275,014 actions-speak-louder-than-words.png
+03/06/2026  10:03 AM         1,694,956 add-fuel-to-the-fire.png
+03/06/2026  08:12 AM         3,000,169 barking-up-the-wrong-tree.png
+03/06/2026  08:09 AM         2,715,835 beat-around-the-bush.png
+03/06/2026  10:23 AM         3,632,257 cut-corners.png
+03/06/2026  12:02 PM           346,537 down-to-earth.png
+03/06/2026  12:02 PM           402,638 get-out-of-hand.png
+03/06/2026  12:02 PM           426,755 give-it-a-shot.png
+03/05/2026  01:25 PM         2,537,186 give-someone-the-cold-shoulder.png
+03/06/2026  02:59 PM            26,938 go-the-extra-mile.png
+03/06/2026  10:28 AM           403,549 hit-the-nail-on-the-head.png
+03/06/2026  11:59 AM           377,540 miss-the-boat.png
+03/06/2026  11:59 AM           298,120 play-it-by-ear.png
+03/06/2026  11:20 PM         2,466,834 pull-someone-s-leg.png
+03/06/2026  12:01 PM           332,785 take-the-bull-by-the-horns.png
+03/06/2026  11:59 AM           344,797 the-last-straw.png
+              20 File(s)     29,345,429 bytes
+               2 Dir(s)  1,077,424,631,808 bytes free

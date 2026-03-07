@@ -21,7 +21,7 @@ base64 = "0.22"
 
 tower = "0.5.2"
 tower-cookies = "0.11"
-tower-http = { version = "0.6.7", features = ["cors"]}
+tower-http = { version = "0.6.7", features = ["fs", "cors", "trace"]}
 
 oauth2 = "5"
 reqwest = { version = "0.12", features = ["json"] }
