@@ -128,6 +128,7 @@ diesel::table! {
         phonetic -> Nullable<Text>,
         is_hot -> Bool,
         tags -> Array<Nullable<Text>>,
+        explanation_en -> Nullable<Text>,
     }
 }
 

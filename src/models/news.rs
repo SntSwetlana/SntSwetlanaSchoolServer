@@ -23,6 +23,7 @@ pub struct NewsPost {
     // ВАЖНО: ровно под schema.rs:
     // tags -> Nullable<Array<Nullable<Text>>>
     pub tags: Vec<Option<String>>,
+    pub explanation_en: Option<String>,
 }
 
 #[derive(Debug, Serialize)]
