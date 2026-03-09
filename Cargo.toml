@@ -28,7 +28,7 @@ reqwest = { version = "0.12", features = ["json", "multipart", "rustls-tls"] }
 url = "2"
 uuid = { version = "1.19.0", features = ["serde", "v4"] }
 jsonwebtoken = { version = "10.2.0", features = ["rust_crypto"] }
-chrono = { version = "0.4.42", features = ["serde"] }
+chrono = { version = "0.4.42", features = ["serde", "clock"] }
 utoipa = { version = "5.4.0", features = ["axum_extras", "uuid"] }
 utoipa-swagger-ui = "9.0.2"
 sha2 = "0.10.9"

@@ -22,6 +22,14 @@ use tower_http::services::ServeDir;
 
 use crate::social::worker::SocialWorker;
 
+use crate::models::social::SocialAccount;
+
+use crate::social::telegram_config::telegram_account_from_env;
+use crate::social::scheduler::telegram_hourly::spawn_hourly_telegram_greeting;
+
+use crate::social::threads_config::threads_account_from_env;
+use crate::social::scheduler::threads_hourly::spawn_hourly_threads_greeting;
+
 #[derive(Clone)]
 pub struct AppState {
     pub pool: DbPool,
@@ -159,6 +167,12 @@ async fn main() {
         "exists test file 2 = {}",
         std::path::Path::new("server/images/idioms/B1/give-someone-the-cold-shoulder.png").exists()
     );
+
+    let telegram_account = telegram_account_from_env();
+    spawn_hourly_telegram_greeting(telegram_account.expect("REASON"));
+    let threads_account = threads_account_from_env();
+    spawn_hourly_threads_greeting(threads_account.expect("REASON"));
+
 
     let listener = tokio::net::TcpListener::bind(addr)
         .await
