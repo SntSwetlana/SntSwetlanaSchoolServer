@@ -232,6 +232,52 @@ diesel::table! {
 }
 
 diesel::table! {
+    social_accounts (id) {
+        id -> Int8,
+        provider -> Text,
+        account_name -> Text,
+        external_account_id -> Nullable<Text>,
+        access_token -> Nullable<Text>,
+        refresh_token -> Nullable<Text>,
+        token_expires_at -> Nullable<Timestamptz>,
+        settings_json -> Jsonb,
+        is_active -> Bool,
+        created_at -> Timestamptz,
+        updated_at -> Timestamptz,
+    }
+}
+
+diesel::table! {
+    social_post_attempts (id) {
+        id -> Int8,
+        social_post_job_id -> Int8,
+        attempt_no -> Int4,
+        status -> Text,
+        response_body -> Nullable<Text>,
+        error_message -> Nullable<Text>,
+        created_at -> Timestamptz,
+    }
+}
+
+diesel::table! {
+    social_post_jobs (id) {
+        id -> Int8,
+        news_post_id -> Uuid,
+        social_account_id -> Int8,
+        status -> Text,
+        scheduled_for -> Timestamptz,
+        published_at -> Nullable<Timestamptz>,
+        retry_count -> Int4,
+        next_retry_at -> Nullable<Timestamptz>,
+        external_post_id -> Nullable<Text>,
+        error_message -> Nullable<Text>,
+        payload_json -> Jsonb,
+        created_at -> Timestamptz,
+        updated_at -> Timestamptz,
+    }
+}
+
+diesel::table! {
     subject_content_items (subject_id, content_id) {
         subject_id -> Uuid,
         content_id -> Uuid,
@@ -294,6 +340,9 @@ diesel::joinable!(quizlet_folder_sets -> quizlet_sets (set_id));
 diesel::joinable!(role_permissions -> permissions (permission_id));
 diesel::joinable!(role_permissions -> roles (role_id));
 diesel::joinable!(sessions -> users (user_id));
+diesel::joinable!(social_post_attempts -> social_post_jobs (social_post_job_id));
+diesel::joinable!(social_post_jobs -> news_posts (news_post_id));
+diesel::joinable!(social_post_jobs -> social_accounts (social_account_id));
 diesel::joinable!(subject_content_items -> content_items (content_id));
 diesel::joinable!(subject_content_items -> subjects (subject_id));
 diesel::joinable!(subjects -> users (created_by));
@@ -318,6 +367,9 @@ diesel::allow_tables_to_appear_in_same_query!(
     role_permissions,
     roles,
     sessions,
+    social_accounts,
+    social_post_attempts,
+    social_post_jobs,
     subject_content_items,
     subjects,
     user_roles,

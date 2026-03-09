@@ -3,11 +3,13 @@ mod api;
 mod db;
 mod models;
 mod routes;
+mod social;
 mod schema;
+mod social_jobs;
+use crate::db::init_pool;
 
 use axum::{routing::{get, post}, Router};
 use std::net::SocketAddr;
-use db::init_pool;
 use dotenvy::dotenv;
 use std::env;
 
@@ -17,6 +19,8 @@ use diesel::PgConnection;
 pub type DbPool = r2d2::Pool<ConnectionManager<PgConnection>>;
 use tower_cookies::CookieManagerLayer;
 use tower_http::services::ServeDir;
+
+use crate::social::worker::SocialWorker;
 
 #[derive(Clone)]
 pub struct AppState {
@@ -30,6 +34,11 @@ async fn main() {
 
     let database_url = env::var("DATABASE_URL").expect("DATABASE_URL is required");
     let pool = init_pool(&database_url);
+
+    let worker = SocialWorker::new(pool.clone());
+    tokio::spawn(async move {
+        worker.run_forever().await;
+    });
 
     let session_secret = env::var("SESSION_SECRET").expect("SESSION_SECRET is required");
 

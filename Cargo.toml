@@ -10,13 +10,13 @@ axum = "0.8.7"
 dotenvy = "0.15.7"
 serde = { version = "1.0.228", features = ["derive"] }
 serde_json = "1.0.145"
-tokio = { version = "1.48.0", features = ["full", "rt-multi-thread"] }
-
+tokio = { version = "1.48.0", features = ["full", "rt-multi-thread", "macros", "time"] }
+async-trait = "0.1"
 diesel = { version = "2.3.4", features = ["postgres", "r2d2","uuid", "chrono", "serde_json"] }
 diesel_json = "0.3.0"
-
+anyhow = "1"
 diesel_migrations = "2.3.1"
-
+tracing = "0.1"
 base64 = "0.22"
 
 tower = "0.5.2"
@@ -24,7 +24,7 @@ tower-cookies = "0.11"
 tower-http = { version = "0.6.7", features = ["fs", "cors", "trace"]}
 
 oauth2 = "5"
-reqwest = { version = "0.12", features = ["json"] }
+reqwest = { version = "0.12", features = ["json", "multipart", "rustls-tls"] }
 url = "2"
 uuid = { version = "1.19.0", features = ["serde", "v4"] }
 jsonwebtoken = { version = "10.2.0", features = ["rust_crypto"] }
