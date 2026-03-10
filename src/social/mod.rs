@@ -5,3 +5,5 @@ pub mod worker;
 pub mod telegram_config;
 pub mod threads_config;
 pub mod scheduler;
+pub mod instagram_config;
+pub mod vk_config;

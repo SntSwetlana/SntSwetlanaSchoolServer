@@ -30,6 +30,12 @@ use crate::social::scheduler::telegram_hourly::spawn_hourly_telegram_greeting;
 use crate::social::threads_config::threads_account_from_env;
 use crate::social::scheduler::threads_hourly::spawn_hourly_threads_greeting;
 
+use crate::social::instagram_config::instagram_account_from_env;
+use crate::social::scheduler::instagram_hourly::spawn_hourly_instagram_greeting;
+
+use crate::social::vk_config::vk_account_from_env;
+use crate::social::scheduler::vk_hourly::spawn_hourly_vk_greeting;
+
 #[derive(Clone)]
 pub struct AppState {
     pub pool: DbPool,
@@ -70,6 +76,10 @@ async fn main() {
         "/users/{id}",
         axum::routing::put(crate::api::admin::users::update_user)
             .delete(crate::api::admin::users::delete_user),
+    )
+        .route(
+        "/test-instagram",
+        post(crate::api::admin::social_test::test_instagram_post),
     )
     .layer(axum::middleware::from_fn(auth::middleware::require_admin));
 
@@ -172,7 +182,10 @@ async fn main() {
     spawn_hourly_telegram_greeting(telegram_account.expect("REASON"));
     let threads_account = threads_account_from_env();
     spawn_hourly_threads_greeting(threads_account.expect("REASON"));
-
+    let instagram_account = instagram_account_from_env();
+    spawn_hourly_instagram_greeting(instagram_account.expect("REASON"));
+    let vk_account = vk_account_from_env();
+    spawn_hourly_vk_greeting(vk_account.expect("REASON"));
 
     let listener = tokio::net::TcpListener::bind(addr)
         .await
