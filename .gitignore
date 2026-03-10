@@ -1,1 +1,6 @@
+.env
 target/
+images/
+seeds/
+1.txt
+list of files to ignore.txt
