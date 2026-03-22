@@ -1,8 +1,9 @@
 use chrono::{DateTime, Utc};
 use serde::Serialize;
+use utoipa::ToSchema;
 use uuid::Uuid;
 
-#[derive(Debug, Clone, Serialize, diesel::Queryable)]
+#[derive(Debug, Clone, Serialize, diesel::Queryable, ToSchema)]
 pub struct NewsPost {
     pub id: Uuid,
     pub kind: String,
@@ -26,7 +27,7 @@ pub struct NewsPost {
     pub explanation_en: Option<String>,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, ToSchema)]
 pub struct NewsListResponse {
     pub items: Vec<NewsPost>,
     // если ты добавляла next_cursor — оставь, иначе удали

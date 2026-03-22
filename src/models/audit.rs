@@ -2,8 +2,6 @@ use diesel::prelude::*;
 use diesel_json::Json;
 
 use crate::schema::audit_log;
-use uuid::Uuid;
-
 
 #[derive(Insertable)]
 #[diesel(table_name = audit_log)]

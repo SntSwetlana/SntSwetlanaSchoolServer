@@ -2,16 +2,20 @@ mod auth;
 mod api;
 mod db;
 mod models;
-mod routes;
 mod social;
 mod schema;
 mod social_jobs;
+mod api_docs;
+
 use crate::db::init_pool;
 
 use axum::{routing::{get, post}, Router};
 use std::net::SocketAddr;
 use dotenvy::dotenv;
 use std::env;
+
+use utoipa::OpenApi;
+use utoipa_swagger_ui::SwaggerUi;
 
 use diesel::r2d2::{self, ConnectionManager};
 use diesel::PgConnection;
@@ -149,7 +153,7 @@ async fn main() {
         .merge(subjects_write)
         .merge(library_routes)
         .nest("/admin", admin_routes)
-        .route("/me", get(routes::me_handler))
+        .route("/me", get(auth::routes::me_handler))
 //        .route("/users", get(routes::get_users))
         .route("/auth/me", get(auth::routes::session_me))
         .layer(axum::middleware::from_fn_with_state(
@@ -161,6 +165,10 @@ async fn main() {
     let app = Router::new()
         .nest("/api", api_public.merge(api_protected))
         .nest_service("/images", ServeDir::new("images"))
+        .merge(
+        SwaggerUi::new("/docs")
+            .url("/api-docs/openapi.json", api_docs::ApiDoc::openapi())
+    )
         .layer(CookieManagerLayer::new());
 
     let addr = SocketAddr::from(([127, 0, 0, 1], 3000));
@@ -184,8 +192,8 @@ async fn main() {
     spawn_hourly_threads_greeting(threads_account.expect("REASON"));
     let instagram_account = instagram_account_from_env();
     spawn_hourly_instagram_greeting(instagram_account.expect("REASON"));
-    let vk_account = vk_account_from_env();
-    spawn_hourly_vk_greeting(vk_account.expect("REASON"));
+//    let vk_account = vk_account_from_env();
+//    spawn_hourly_vk_greeting(vk_account.expect("REASON"));
 
     let listener = tokio::net::TcpListener::bind(addr)
         .await

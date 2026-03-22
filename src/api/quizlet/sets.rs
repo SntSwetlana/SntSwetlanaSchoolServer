@@ -31,7 +31,6 @@ pub struct UpsertSetBody {
     pub description: Option<String>,
     pub language_level: Option<String>,
     pub textbook_id: Option<Uuid>,
-    pub folder_id: Option<Uuid>,
     pub source_url: Option<String>,
 }
 
@@ -45,15 +44,14 @@ pub async fn upsert_set(
     // diesel upsert через sql_query (быстрее и проще)
     diesel::sql_query(
         r#"
-        INSERT INTO quizlet_sets (id, slug, title, description, language_level, textbook_id, folder_id, source_url, created_at, updated_at)
-        VALUES ($1,$2,$3,$4,$5,$6,$7,$8, now(), now())
+        INSERT INTO quizlet_sets (id, slug, title, description, language_level, textbook_id, source_url, created_at, updated_at)
+        VALUES ($1,$2,$3,$4,$5,$6,$7, now(), now())
         ON CONFLICT (slug) DO UPDATE SET
         id = EXCLUDED.id,
         title = EXCLUDED.title,
         description = EXCLUDED.description,
         language_level = EXCLUDED.language_level,
         textbook_id = EXCLUDED.textbook_id,
-        folder_id = EXCLUDED.folder_id,
         source_url = EXCLUDED.source_url,
         updated_at = now()
         RETURNING *
@@ -65,7 +63,6 @@ pub async fn upsert_set(
     .bind::<diesel::sql_types::Nullable<diesel::sql_types::Text>, _>(body.description)
     .bind::<diesel::sql_types::Nullable<diesel::sql_types::Text>, _>(body.language_level)
     .bind::<diesel::sql_types::Nullable<diesel::sql_types::Uuid>, _>(body.textbook_id)
-    .bind::<diesel::sql_types::Nullable<diesel::sql_types::Uuid>, _>(body.folder_id)
     .bind::<diesel::sql_types::Nullable<diesel::sql_types::Text>, _>(body.source_url)
     .execute(&mut conn)
     .map_err(|_| StatusCode::CONFLICT)?;

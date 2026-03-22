@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use anyhow::{anyhow, Result};
+use anyhow::{ Result};
 
 use crate::social::adapters::instagram::InstagramPublisher;
 use crate::social::adapters::telegram::TelegramPublisher;

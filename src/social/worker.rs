@@ -3,7 +3,7 @@ use crate::models::news::NewsPost;
 
 use anyhow::Result;
 use tokio::time;
-use tracing::{error, info, warn};
+use tracing::{error};
 
 use crate::social_jobs::{
     claim_one_due_job, insert_attempt, mark_job_failed, mark_job_posted,

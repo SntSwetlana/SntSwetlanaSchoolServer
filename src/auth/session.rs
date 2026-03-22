@@ -1,9 +1,7 @@
 use diesel::prelude::*;
-use sha2::{Digest, Sha256};
 use uuid::Uuid;
-use time::{OffsetDateTime, Duration};
 
-use crate::schema::{self, sessions};
+use crate::schema::{sessions};
 
 fn compute_sid_hash(secret: &str, sid: &str) -> String {
     use sha2::{Digest, Sha256};

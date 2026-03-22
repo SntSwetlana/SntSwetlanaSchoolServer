@@ -1,7 +1,7 @@
 use diesel::prelude::*;
 use diesel::result::QueryResult;
 
-use crate::models::social::{NewSocialPostJob, SocialPostJob, SocialAccount, SocialPostAttempt };
+use crate::models::social::{NewSocialPostJob, SocialPostJob };
 use crate::schema::social_post_jobs;
 
 pub fn create_social_post_job(
@@ -14,13 +14,9 @@ pub fn create_social_post_job(
         .get_result(conn)
 }
 
-use anyhow::{anyhow, Result};
-use diesel::sql_types::{BigInt, Nullable, Text, Timestamptz, Uuid as SqlUuid};
-use serde_json::Value;
+use anyhow::{Result};
+use diesel::sql_types::{BigInt, Nullable, Text, Uuid as SqlUuid};
 use uuid::Uuid;
-
-use crate::models::news::NewsPost;
-use crate::social::types::SocialJobStatus;
 
 #[derive(Debug, QueryableByName)]
 pub struct DueJobRow {

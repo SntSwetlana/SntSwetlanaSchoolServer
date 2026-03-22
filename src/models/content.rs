@@ -1,5 +1,5 @@
 use diesel::prelude::*;
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize};
 use uuid::Uuid;
 
 use crate::schema::{content_items, content_versions};
@@ -12,19 +12,6 @@ pub struct NewContentItem {
     pub grade_level: i32,
     pub title: String,
     pub created_by: Uuid,
-}
-
-#[derive(Debug, Queryable, Selectable, Serialize)]
-#[diesel(table_name = content_versions)]
-#[diesel(check_for_backend(diesel::pg::Pg))]
-pub struct ContentVersion {
-    pub id: Uuid,
-    pub content_id: Uuid,
-    pub version: i32,
-    pub body: serde_json::Value,
-    pub change_summary: Option<String>,
-    pub created_by: Uuid,
-    pub created_at: chrono::NaiveDateTime,
 }
 
 #[derive(Debug, Insertable, Deserialize)]

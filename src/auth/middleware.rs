@@ -118,28 +118,3 @@ pub async fn require_admin(req: Request<Body>, next: Next) -> Result<Response, S
     Ok(next.run(req).await)
 }
 
-pub async fn require_teacher(req: Request<Body>, next: Next) -> Result<Response, StatusCode> {
-    let ctx = req
-        .extensions()
-        .get::<AuthContext>()
-        .ok_or(StatusCode::UNAUTHORIZED)?;
-
-    if !(ctx.has_role("teacher") || ctx.has_role("admin")) {
-        return Err(StatusCode::FORBIDDEN);
-    }
-
-    Ok(next.run(req).await)
-}
-
-pub async fn require_editor(req: Request<Body>, next: Next) -> Result<Response, StatusCode> {
-    let ctx = req
-        .extensions()
-        .get::<AuthContext>()
-        .ok_or(StatusCode::UNAUTHORIZED)?;
-
-    if !(ctx.has_role("editor") || ctx.has_role("admin")) {
-        return Err(StatusCode::FORBIDDEN);
-    }
-
-    Ok(next.run(req).await)
-}
