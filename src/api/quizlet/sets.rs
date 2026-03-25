@@ -75,3 +75,32 @@ pub async fn upsert_set(
 
     Ok(Json(set))
 }
+
+pub async fn flip_set_cards(
+    State(state): State<AppState>,
+    Path(set_id): Path<Uuid>,
+) -> Result<StatusCode, (StatusCode, String)> {
+    let mut conn = state
+        .pool
+        .get()
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+
+    conn.transaction::<_, diesel::result::Error, _>(|conn| {
+        diesel::sql_query(
+            r#"
+            UPDATE quizlet_cards
+            SET
+                term = explanation,
+                explanation = term
+            WHERE set_id = $1
+            "#
+        )
+        .bind::<diesel::sql_types::Uuid, _>(set_id)
+        .execute(conn)?;
+
+        Ok(())
+    })
+    .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+
+    Ok(StatusCode::NO_CONTENT)
+}

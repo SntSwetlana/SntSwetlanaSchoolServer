@@ -118,7 +118,8 @@ async fn main() {
         .route("/quizlet/sets", get(crate::api::quizlet::full::list_sets_grouped))
         .route("/quizlet/sets/{set_id}", axum::routing::put(crate::api::quizlet::sets::upsert_set))
         .route("/quizlet/sets/{set_id}/cards:replace", axum::routing::put(crate::api::quizlet::cards_replace::replace_cards))
-        .route("/quizlet/sets/{set_id}/full", get(crate::api::quizlet::full::get_set_full));
+        .route("/quizlet/sets/{set_id}/full", get(crate::api::quizlet::full::get_set_full))
+        .route("/quizlet/sets/{set_id}/cards:flip", post(crate::api::quizlet::sets::flip_set_cards));
 
     let quizlet_folder_routes = Router::new()
         .route(

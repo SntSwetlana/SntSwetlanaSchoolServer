@@ -88,7 +88,7 @@ fn is_draft_title(title: &str) -> bool {
 }
 pub async fn list_sets_grouped(
     State(state): State<AppState>,
-) -> Result<Json<QuizletSetsGroupedRjresponse>, StatusCode> {
+) -> Result<Json<QuizletSetsGroupedResponse>, StatusCode> {
     use crate::schema::quizlet_cards::dsl as qc;
     use crate::schema::quizlet_sets::dsl as qs;
 
